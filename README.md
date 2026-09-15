@@ -150,3 +150,27 @@ complaint11/
 
 ## 📜 License & Acknowledgements
 Built for University Campus Infrastructure & Student Welfare Management. All rights reserved © 2026 **ResolveHub Team**.
+
+
+
+# ResolveHub
+
+University Complaint & Grievance Management System.
+
+## 🌐 Live Demo
+
+[Visit ResolveHub Live Website](https://resolve-hub-seven.vercel.app/)
+
+## 🚀 Tech Stack
+
+- React
+- TypeScript
+- Tailwind CSS
+- Node.js
+- Express.js
+- Vercel
+- Render
+
+## 🌐 Live Demo
+
+🔗 https://resolve-hub-seven.vercel.app/
