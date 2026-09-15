@@ -398,6 +398,14 @@
   ],
   "activityLogs": [
     {
+      "id": "log-e89be1f6",
+      "timestamp": "16/9/2026, 1:25:57 am",
+      "author": "System Super Admin",
+      "role": "Super Admin",
+      "action": "Admin Sign In",
+      "details": "Signed in from control panel (All Departments)"
+    },
+    {
       "id": "log-99a65389",
       "timestamp": "15/9/2026, 11:46:11 pm",
       "author": "Student 241FA07011",
