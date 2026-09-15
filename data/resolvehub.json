@@ -1,0 +1,607 @@
+{
+  "tickets": [
+    {
+      "id": "RP-2028",
+      "title": "bad",
+      "category": "Sanitation & Hygiene",
+      "department": "Health & Sanitation",
+      "urgency": "medium",
+      "priority": "Medium",
+      "status": "new",
+      "slaStatus": "normal",
+      "location": "u block",
+      "description": "bad",
+      "complainant": {
+        "regNo": "241FA07011",
+        "name": "SAI",
+        "email": "ksaiganesh@gmail.com",
+        "role": "Student",
+        "department": "Information Technology (IT)"
+      },
+      "submittedBy": "Reg No: 241FA07011 (ksaiganesh@gmail.com)",
+      "assignedAgent": null,
+      "responseRemarks": "",
+      "eta": "Assessing ETA...",
+      "etaMinutesLeft": 480,
+      "currentStepIndex": 0,
+      "createdAt": "15 Sept 2026, 11:46 pm",
+      "updatedAt": "15 Sept 2026, 11:46 pm",
+      "attachments": [],
+      "auditLogs": [
+        {
+          "id": "9b789eda-7032-44a7-b328-2af3b9cd764b",
+          "timestamp": "11:46 pm",
+          "author": "Student 241FA07011",
+          "role": "Student",
+          "action": "Complaint Logged",
+          "note": "Registered with MEDIUM priority priority."
+        }
+      ]
+    },
+    {
+      "id": "RP-8042",
+      "title": "Air Conditioning Breakdown in Block-C Server & Common Hall",
+      "category": "Hostel & Facilities",
+      "department": "Facilities & HVAC",
+      "urgency": "high",
+      "status": "dispatched",
+      "slaStatus": "normal",
+      "location": "Block-C, Room 304 & Common Wing",
+      "description": "Central cooling unit tripping every 10 minutes. Severe compressor noise and rising temperature.",
+      "complainant": {
+        "regNo": "241FA07001",
+        "name": "Venkata Sai Teja",
+        "email": "saiteja.241fa07001@gmail.com",
+        "role": "Student"
+      },
+      "assignedAgent": {
+        "name": "Rahul K.",
+        "role": "Lead HVAC Specialist",
+        "phone": "+91 94412 88201",
+        "department": "Facilities & HVAC"
+      },
+      "responseRemarks": "Diagnostic team on-site inspecting central chiller compressor.",
+      "eta": "Today, 02:30 PM",
+      "etaMinutesLeft": 58,
+      "currentStepIndex": 2,
+      "createdAt": "2026-09-15, 10:30 AM",
+      "updatedAt": "12 mins ago",
+      "attachments": [
+        {
+          "id": "att-1",
+          "name": "ac_compressor_trip.jpg",
+          "size": "1.4 MB",
+          "type": "image/jpeg"
+        },
+        {
+          "id": "att-2",
+          "name": "thermostat_reading.png",
+          "size": "820 KB",
+          "type": "image/png"
+        }
+      ],
+      "auditLogs": [
+        {
+          "id": "l1",
+          "timestamp": "10:30 AM",
+          "author": "System Dispatch",
+          "role": "Automated Bot",
+          "action": "Ticket Logged",
+          "note": "Issue classified as High Urgency."
+        },
+        {
+          "id": "l2",
+          "timestamp": "10:45 AM",
+          "author": "Dispatcher Sharma",
+          "role": "Super Admin",
+          "action": "Ticket Assigned",
+          "note": "Assigned to Facilities & HVAC division queue."
+        },
+        {
+          "id": "l3",
+          "timestamp": "11:15 AM",
+          "author": "Rahul K.",
+          "role": "Department Admin",
+          "action": "Technician Dispatched",
+          "note": "On-site diagnostic kit deployed."
+        }
+      ]
+    },
+    {
+      "id": "RP-8039",
+      "title": "Main Library 5GHz Enterprise Wi-Fi Gateway Offline",
+      "category": "IT & Network",
+      "department": "IT & Network Systems",
+      "urgency": "critical",
+      "status": "investigating",
+      "slaStatus": "warning",
+      "location": "Central Library, 2nd Floor Reading Room",
+      "description": "Aruba AP-535 access point blinking red. Over 120 students disconnected.",
+      "complainant": {
+        "regNo": "241FA07015",
+        "name": "Ananya Sharma",
+        "email": "ananya.s@campus.edu",
+        "role": "Student"
+      },
+      "assignedAgent": {
+        "name": "Vikram Mehta",
+        "role": "Senior Network Engineer",
+        "phone": "+91 98877 12345",
+        "department": "IT & Network Systems"
+      },
+      "responseRemarks": "Checking core switch PoE port configuration and VLAN router.",
+      "eta": "Today, 01:00 PM",
+      "etaMinutesLeft": 32,
+      "currentStepIndex": 1,
+      "createdAt": "2026-09-15, 09:15 AM",
+      "updatedAt": "25 mins ago",
+      "attachments": [
+        {
+          "id": "att-3",
+          "name": "ap_led_status.jpg",
+          "size": "2.1 MB",
+          "type": "image/jpeg"
+        }
+      ],
+      "auditLogs": [
+        {
+          "id": "l4",
+          "timestamp": "09:15 AM",
+          "author": "System Dispatch",
+          "role": "Automated Bot",
+          "action": "Ticket Logged",
+          "note": "SLA timer initiated: 4.0 Hours Max."
+        },
+        {
+          "id": "l5",
+          "timestamp": "09:30 AM",
+          "author": "Vikram Mehta",
+          "role": "Department Admin",
+          "action": "Investigating",
+          "note": "Remote ping to switch port timed out."
+        }
+      ]
+    },
+    {
+      "id": "RP-7994",
+      "title": "Merit Scholarship Disbursal Ledger Discrepancy (Semester V)",
+      "category": "Finance & Scholarship",
+      "department": "Student Finance Bureau",
+      "urgency": "medium",
+      "status": "new",
+      "slaStatus": "normal",
+      "location": "Admin Wing, Finance Counter 3",
+      "description": "Tuition fee waiver credited at 40% instead of official 75%.",
+      "complainant": {
+        "regNo": "241FA07001",
+        "name": "Venkata Sai Teja",
+        "email": "saiteja.241fa07001@gmail.com",
+        "role": "Student"
+      },
+      "assignedAgent": null,
+      "responseRemarks": "",
+      "eta": "Tomorrow, 12:00 PM",
+      "etaMinutesLeft": 840,
+      "currentStepIndex": 0,
+      "createdAt": "2026-09-14, 04:20 PM",
+      "updatedAt": "Yesterday, 04:20 PM",
+      "attachments": [
+        {
+          "id": "att-4",
+          "name": "scholarship_award_letter.pdf",
+          "size": "640 KB",
+          "type": "application/pdf"
+        }
+      ],
+      "auditLogs": [
+        {
+          "id": "l6",
+          "timestamp": "Yesterday, 04:20 PM",
+          "author": "System Dispatch",
+          "role": "Automated Bot",
+          "action": "Ticket Logged",
+          "note": "Queued in Finance verification backlog."
+        }
+      ]
+    },
+    {
+      "id": "RP-7911",
+      "title": "Water Filtration Unit Filter Replacement (Dining Hall B)",
+      "category": "Sanitation & Hygiene",
+      "department": "Health & Sanitation",
+      "urgency": "medium",
+      "status": "investigating",
+      "slaStatus": "normal",
+      "location": "Mess Facility B, South Wing",
+      "description": "RO filtration TDS reading 380 PPM. Requested membrane replacement.",
+      "complainant": {
+        "regNo": "241FA07015",
+        "name": "Ananya Sharma",
+        "email": "ananya.s@campus.edu",
+        "role": "Student"
+      },
+      "assignedAgent": {
+        "name": "Santosh Kumar",
+        "role": "Sanitation Officer",
+        "phone": "+91 97766 54321",
+        "department": "Health & Sanitation"
+      },
+      "responseRemarks": "Industrial RO cartridge swapped and water purity re-tested at 45 PPM.",
+      "eta": "Resolved",
+      "etaMinutesLeft": 0,
+      "currentStepIndex": 1,
+      "createdAt": "2026-09-10, 08:00 AM",
+      "updatedAt": "15 Sept 2026, 11:44 pm",
+      "attachments": [],
+      "auditLogs": [
+        {
+          "id": "a6d8ba44-5e53-4c11-8f66-417a8d55b03a",
+          "timestamp": "11:44 pm",
+          "author": "System Super Admin",
+          "role": "Super Admin",
+          "action": "Investigation Initiated",
+          "note": "Industrial RO cartridge swapped and water purity re-tested at 45 PPM."
+        },
+        {
+          "id": "18241c58-740e-42fd-a740-d90e4af989a5",
+          "timestamp": "11:44 pm",
+          "author": "System Super Admin",
+          "role": "Super Admin",
+          "action": "Technician Dispatched On-Site",
+          "note": "Industrial RO cartridge swapped and water purity re-tested at 45 PPM."
+        },
+        {
+          "id": "l7",
+          "timestamp": "Oct 10, 08:00 AM",
+          "author": "System",
+          "role": "Intake",
+          "action": "Ticket Logged",
+          "note": ""
+        },
+        {
+          "id": "l8",
+          "timestamp": "Oct 10, 11:00 AM",
+          "author": "Santosh K.",
+          "role": "Department Admin",
+          "action": "Technician Dispatched",
+          "note": "Industrial RO cartridge swapped."
+        },
+        {
+          "id": "l9",
+          "timestamp": "Oct 10, 03:45 PM",
+          "author": "Santosh K.",
+          "role": "Department Admin",
+          "action": "Resolved",
+          "note": "Water tested at 45 PPM pure."
+        }
+      ]
+    },
+    {
+      "id": "RP-7890",
+      "title": "Lab 4 Deep Learning GPU Server Overheating Warning",
+      "category": "IT & Network",
+      "department": "IT & Network Systems",
+      "urgency": "critical",
+      "status": "resolved",
+      "slaStatus": "normal",
+      "location": "AI Research Center, Lab 4 Rack 2",
+      "description": "NVIDIA RTX A6000 node throttling at 94°C due to intake fan dust blockage.",
+      "complainant": {
+        "regNo": "241FA07001",
+        "name": "Venkata Sai Teja",
+        "email": "saiteja.241fa07001@gmail.com",
+        "role": "Student"
+      },
+      "assignedAgent": {
+        "name": "Vikram Mehta",
+        "role": "Senior Network Engineer",
+        "department": "IT & Network Systems"
+      },
+      "responseRemarks": "Intake fans cleaned and thermal paste reapplied.",
+      "eta": "Resolved",
+      "etaMinutesLeft": 0,
+      "currentStepIndex": 3,
+      "createdAt": "2026-09-08, 02:00 PM",
+      "updatedAt": "Oct 08, 04:30 PM",
+      "attachments": [],
+      "auditLogs": [
+        {
+          "id": "l10",
+          "timestamp": "Oct 08, 02:00 PM",
+          "author": "System",
+          "role": "Intake",
+          "action": "Ticket Logged",
+          "note": ""
+        },
+        {
+          "id": "l11",
+          "timestamp": "Oct 08, 04:30 PM",
+          "author": "Vikram M.",
+          "role": "Department Admin",
+          "action": "Resolved",
+          "note": "Thermal paste reapplied."
+        }
+      ]
+    }
+  ],
+  "staff": [
+    {
+      "id": "admin-super-01",
+      "username": "superadmin",
+      "password": "admin123",
+      "passwordHash": "47b7fb2aba521021e9253bb4881bbfa339da9d96e57f2a8f0c33773ac0106fbd681d0d762ad7257e7dd9eb8deb619a77864f1fca7a7ae1287d0ac88ff57caa56",
+      "name": "System Super Admin",
+      "role": "super_admin",
+      "department": "All Departments",
+      "status": "ACTIVE",
+      "createdAt": "2026-09-15 08:00 AM"
+    },
+    {
+      "id": "admin-dept-fe679e",
+      "username": "k.sujatha",
+      "passwordHash": "3c3cd4428f03eceba2348ba11a6fe2bfa1d3c8276f816e3a58042444536595655fd0b614d1122e21e122c86c40af886dae7d6bf4c49babf9ee762e46818d01cf",
+      "name": "sujatha",
+      "role": "dept_admin",
+      "department": "IT & Network Systems",
+      "status": "ACTIVE",
+      "createdAt": "15/9/2026, 11:27:56 pm"
+    }
+  ],
+  "signupRequests": [
+    {
+      "id": "req-5f0e08bc",
+      "regNo": "241FA07011",
+      "fullName": "SAI",
+      "email": "ksaiganesh@gmail.com",
+      "department": "Information Technology (IT)",
+      "year": "3rd Year",
+      "password": "200611",
+      "status": "APPROVED",
+      "createdAt": "15/9/2026, 1:55:20 pm",
+      "rejectionReason": null
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-student-001",
+      "regNo": "241FA07001",
+      "fullName": "Venkata Sai Teja",
+      "email": "saiteja.241fa07001@gmail.com",
+      "department": "Computer Science & Engineering (CSE)",
+      "year": "3rd Year",
+      "passwordHash": "498657f53bda91d59d24ddace33afcb719b06538810f52e68d971ecab3956699b5c8a55e96ac6744c3c455a7f3a6cf736876ed480acc73cc4e883eecb4dcc7bd",
+      "status": "ACTIVE",
+      "activatedAt": "2026-09-15 09:00 AM"
+    },
+    {
+      "id": "usr-student-002",
+      "regNo": "241FA07015",
+      "fullName": "Ananya Sharma",
+      "email": "ananya.s@campus.edu",
+      "department": "Electronics & Communication (ECE)",
+      "year": "2nd Year",
+      "passwordHash": "4d1336d4ec09d13ed75916a3fe4db6e1ee19ab1e4d6a75308f80af3b4af7c56bf098e6cf0cd3b04b49aa3b30a9a9e1a020a48a4e3f4d6b7733c0f8c07e60f75c",
+      "status": "ACTIVE",
+      "activatedAt": "2026-09-15 09:30 AM"
+    },
+    {
+      "id": "usr-c9ddc047",
+      "regNo": "241FA07011",
+      "fullName": "SAI",
+      "email": "ksaiganesh@gmail.com",
+      "department": "Information Technology (IT)",
+      "year": "3rd Year",
+      "passwordHash": "81fee88e15f92039afd92bd80793fc85367f618d5ac2fa116a0080d5c9ff5afe14d26d3eb0ae2f58295eb4e740f09123abe32aa5be4d351ac24a6c16b2cce37d",
+      "status": "ACTIVE",
+      "activatedAt": "15/9/2026, 11:24:43 pm"
+    }
+  ],
+  "activityLogs": [
+    {
+      "id": "log-99a65389",
+      "timestamp": "15/9/2026, 11:46:11 pm",
+      "author": "Student 241FA07011",
+      "role": "Student",
+      "action": "Complaint Submitted",
+      "details": "Submitted Complaint ID: RP-2028 (Sanitation & Hygiene)"
+    },
+    {
+      "id": "log-7e14d834",
+      "timestamp": "15/9/2026, 11:45:12 pm",
+      "author": "SAI",
+      "role": "Student",
+      "action": "Student Sign In",
+      "details": "Reg No: 241FA07011 logged into student dashboard."
+    },
+    {
+      "id": "log-081ca71f",
+      "timestamp": "15/9/2026, 11:44:20 pm",
+      "author": "System Super Admin",
+      "role": "Super Admin",
+      "action": "Complaint Status -> INVESTIGATING",
+      "details": "Updated Complaint ID RP-7911. Remarks: Industrial RO cartridge swapped and water purity re-tested at 45 PPM."
+    },
+    {
+      "id": "log-4f95b58d",
+      "timestamp": "15/9/2026, 11:44:11 pm",
+      "author": "System Super Admin",
+      "role": "Super Admin",
+      "action": "Complaint Status -> DISPATCHED",
+      "details": "Updated Complaint ID RP-7911. Remarks: Industrial RO cartridge swapped and water purity re-tested at 45 PPM."
+    },
+    {
+      "id": "log-833a0b45",
+      "timestamp": "15/9/2026, 11:43:47 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-39b9a520",
+      "timestamp": "15/9/2026, 11:43:45 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-a94b8411",
+      "timestamp": "15/9/2026, 11:43:44 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-7758bd6f",
+      "timestamp": "15/9/2026, 11:43:42 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-93bbbf10",
+      "timestamp": "15/9/2026, 11:43:34 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-d114f09d",
+      "timestamp": "15/9/2026, 11:43:32 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-93163901",
+      "timestamp": "15/9/2026, 11:43:27 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-bbb8d9ba",
+      "timestamp": "15/9/2026, 11:43:15 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-c112f6ee",
+      "timestamp": "15/9/2026, 11:43:02 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-1b7dacbb",
+      "timestamp": "15/9/2026, 11:42:57 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-b7846c23",
+      "timestamp": "15/9/2026, 11:42:47 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-6a10c090",
+      "timestamp": "15/9/2026, 11:42:40 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "System Settings Updated",
+      "details": "Updated complaint categories, departments, and SLA configurations."
+    },
+    {
+      "id": "log-c64f1786",
+      "timestamp": "15/9/2026, 11:27:56 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "New Admin Created",
+      "details": "Created Dept Admin (IT & Network Systems): sujatha (k.sujatha)"
+    },
+    {
+      "id": "log-9033f090",
+      "timestamp": "15/9/2026, 11:26:34 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "Admin Removed",
+      "details": "Removed admin account dept_hvac (Facilities & HVAC)"
+    },
+    {
+      "id": "log-5a90c207",
+      "timestamp": "15/9/2026, 11:26:27 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "Admin Removed",
+      "details": "Removed admin account dept_it (IT & Network Systems)"
+    },
+    {
+      "id": "log-ef78b97f",
+      "timestamp": "15/9/2026, 11:24:57 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "Student Status Changed",
+      "details": "Updated Student 241FA07001 status to ACTIVE"
+    },
+    {
+      "id": "log-0a4a6c14",
+      "timestamp": "15/9/2026, 11:24:55 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "Student Status Changed",
+      "details": "Updated Student 241FA07001 status to INACTIVE"
+    },
+    {
+      "id": "log-be47fda3",
+      "timestamp": "15/9/2026, 11:24:43 pm",
+      "author": "Super Admin",
+      "role": "Super Admin",
+      "action": "Student Signup Approved",
+      "details": "Approved Reg No: 241FA07011 (SAI). Account activated."
+    }
+  ],
+  "systemSettings": {
+    "categories": [
+      "Hostel & Facilities",
+      "IT & Network",
+      "Finance & Scholarship",
+      "Sanitation & Hygiene",
+      "Academics",
+      "Harassment & Discipline"
+    ],
+    "departments": [
+      "ECE",
+      "CSE",
+      "BI&BT",
+      "EEE",
+      "AIML",
+      "cyber security"
+    ],
+    "priorities": [
+      "Low",
+      "Medium",
+      "High",
+      "Urgent"
+    ],
+    "slaHours": {
+      "critical": 2,
+      "high": 4,
+      "medium": 8,
+      "low": 24
+    }
+  }
+}
