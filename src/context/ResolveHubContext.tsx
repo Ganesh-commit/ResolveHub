@@ -427,16 +427,18 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     location?: string;
     attachments?: { name: string; size: string; type: string }[];
     email?: string;
+    studentRegNo?: string;
+    studentName?: string;
   }): string | null => {
-    if (!authUser) {
+    if (!authUser && !data.studentRegNo) {
       setIsLoginModalOpen(true);
       addToast('warning', 'Login Required!', 'You must log in before submitting a complaint.');
       return null;
     }
 
-    const regNo = authUser.regNo || authUser.username || '241FA07001';
-    const studentName = authUser.name || `Student ${regNo}`;
-    const studentEmail = data.email || authUser.email || `${regNo.toLowerCase()}@campus.edu`;
+    const regNo = (data.studentRegNo || authUser?.regNo || authUser?.username || '241FA07001').toUpperCase();
+    const studentName = data.studentName || authUser?.name || `Student ${regNo}`;
+    const studentEmail = data.email || authUser?.email || `${regNo.toLowerCase()}@campus.edu`;
 
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const newId = `RP-${randomNum}`;
@@ -472,7 +474,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         name: studentName,
         email: studentEmail,
         role: 'Student',
-        department: authUser.department || 'Engineering'
+        department: authUser?.department || 'Engineering'
       },
       department: dept,
       assignedOfficer: 'Automated Desk Triage',
@@ -502,7 +504,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       studentRegNo: regNo,
       studentName: studentName,
       studentEmail: studentEmail,
-      studentDept: authUser.department,
+      studentDept: authUser?.department,
       attachments: data.attachments
     }).then(() => fetchComplaints()).catch(() => {});
 
@@ -518,7 +520,11 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       targetRegNo: regNo.toUpperCase(),
       targetRole: 'student'
     };
-    setNotifications(prev => [newNotif, ...prev]);
+    setNotifications(prev => {
+      const exists = prev.some(n => n.complaintId === newId && n.type === 'status_update' && n.title === newNotif.title);
+      if (exists) return prev;
+      return [newNotif, ...prev];
+    });
 
     playNotificationChime();
     addToast('success', 'Complaint Registered!', `Complaint ID: ${newId} submitted.`);
@@ -593,7 +599,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await ticketApi.updateStatus(id, status, remarks, updatedBy, role);
     } catch (e) {}
 
-    // Notification strictly targeted to complaint student
+    // Notification strictly targeted to complaint student with duplicate prevention
     const newNotif: NotificationItem = {
       id: Math.random().toString(36).substring(2, 9),
       title: notifTitle,
@@ -605,7 +611,12 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       targetRegNo: targetReg ? targetReg.toUpperCase() : undefined,
       targetRole: 'student'
     };
-    setNotifications(prev => [newNotif, ...prev]);
+    setNotifications(prev => {
+      // Prevent duplicate notification for the same complaint ID & same title
+      const exists = prev.some(n => n.complaintId === id && n.title === notifTitle);
+      if (exists) return prev;
+      return [newNotif, ...prev];
+    });
 
     addToast('info', 'Status Updated', `Complaint ${id} set to ${status}.`);
   };
