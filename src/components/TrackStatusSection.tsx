@@ -79,10 +79,14 @@ export const TrackStatusSection: React.FC = () => {
   useEffect(() => {
     if (trackQuery) {
       setInputVal(trackQuery);
-      performSearch(trackQuery);
+      if (!activeComplaint || activeComplaint.id.toUpperCase() !== trackQuery.trim().toUpperCase()) {
+        performSearch(trackQuery);
+      }
     } else if (userComplaints.length > 0) {
-      setInputVal(userComplaints[0].id);
-      setActiveComplaint(userComplaints[0]);
+      if (!activeComplaint) {
+        setInputVal(userComplaints[0].id);
+        setActiveComplaint(userComplaints[0]);
+      }
     } else if (complaints.length > 0 && !activeComplaint) {
       setInputVal(complaints[0].id);
       setActiveComplaint(complaints[0]);
@@ -205,7 +209,12 @@ export const TrackStatusSection: React.FC = () => {
 
             {/* Horizontal Timeline Bar on Desktop */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 relative">
-              {activeComplaint.timeline.map((step, idx) => {
+              {(activeComplaint.timeline && activeComplaint.timeline.length > 0 ? activeComplaint.timeline : [
+                { title: 'Grievance Submitted', status: 'Submitted', date: activeComplaint.submittedAt || 'Recent', description: 'Complaint registered in portal.', completed: true },
+                { title: 'Department Review & Triage', status: 'Under Review', date: 'Triage', description: `Assigned to ${activeComplaint.department || 'Department'}.`, completed: ['investigating', 'dispatched', 'resolved'].includes((activeComplaint.status || '').toLowerCase()) },
+                { title: 'Action & Field Dispatch', status: 'In Progress', date: 'In Progress', description: 'Technician dispatched for field resolution.', completed: ['dispatched', 'resolved'].includes((activeComplaint.status || '').toLowerCase()) },
+                { title: 'Resolution & Signoff', status: 'Resolved', date: 'Target Signoff', description: 'Final verification.', completed: (activeComplaint.status || '').toLowerCase() === 'resolved' }
+              ]).map((step, idx) => {
                 const isCurrent = activeComplaint.status === step.status;
                 return (
                   <div
