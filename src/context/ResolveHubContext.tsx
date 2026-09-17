@@ -178,7 +178,12 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_NOTIFS_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed: NotificationItem[] = JSON.parse(saved);
+        // Filter out legacy unscoped status update notifications that caused leak to all students
+        return parsed.filter(n => n.type !== 'status_update' || !!n.targetRegNo);
+      }
+      return [];
     } catch {
       return [];
     }
@@ -526,8 +531,38 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const role = authUser?.role === 'super_admin' ? 'Super Admin' : (authUser?.role === 'dept_admin' ? 'Department Admin' : 'Admin');
     const remarks = responseRemarks || (status.toLowerCase() === 'rejected' ? 'Complaint rejected after official verification.' : `Status updated to ${status}.`);
 
-    const curTicket = complaints.find(c => c.id === id);
-    const targetReg = curTicket?.complainant?.regNo || (curTicket?.submittedBy ? curTicket.submittedBy.match(/Reg No:\s*([A-Za-z0-9]+)/)?.[1] : undefined);
+    let curTicket = complaints.find(c => c.id === id);
+    let targetReg = curTicket?.complainant?.regNo || (curTicket?.submittedBy ? curTicket.submittedBy.match(/Reg No:\s*([A-Za-z0-9]+)/)?.[1] : undefined);
+
+    // If targetReg is not in local state, attempt to fetch backend ticket to target student strictly
+    if (!targetReg) {
+      try {
+        const live: any = await ticketApi.getOne(id);
+        if (live && live.complainant?.regNo) {
+          targetReg = live.complainant.regNo;
+        }
+      } catch (e) {}
+    }
+
+    const nowTimeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const nowDateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formattedTimestamp = `${nowDateStr} at ${nowTimeStr}`;
+
+    const normStatus = status.toLowerCase();
+    const isResolved = normStatus === 'resolved';
+    const isRejected = normStatus === 'rejected';
+
+    const notifTitle = isResolved
+      ? `🎉 Complaint RESOLVED: ${id}`
+      : isRejected
+      ? `❌ Complaint REJECTED: ${id}`
+      : `⚡ Complaint Status Updated: ${id}`;
+
+    const notifMessage = isResolved
+      ? `Your complaint (${id}) was officially RESOLVED on ${formattedTimestamp}. Remarks: ${remarks}`
+      : isRejected
+      ? `Your complaint (${id}) was REJECTED on ${formattedTimestamp}. Remarks: ${remarks}`
+      : `Complaint (${id}) status updated to ${status.toUpperCase()} on ${formattedTimestamp}. Remarks: ${remarks}`;
 
     // Local state update
     setComplaints(prev =>
@@ -535,7 +570,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (c.id === id) {
           const newLog = {
             id: Math.random().toString(36).substring(2, 9),
-            timestamp: new Date().toLocaleTimeString('en-IN'),
+            timestamp: formattedTimestamp,
             author: updatedBy,
             role,
             action: `Status -> ${status}`,
@@ -543,9 +578,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           };
           return {
             ...c,
-            status: status.toLowerCase(),
+            status: normStatus,
             responseRemarks: remarks,
-            updatedAt: 'Just now',
+            updatedAt: formattedTimestamp,
             auditLogs: [newLog, ...(c.auditLogs || [])]
           };
         }
@@ -558,12 +593,12 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await ticketApi.updateStatus(id, status, remarks, updatedBy, role);
     } catch (e) {}
 
-    // Notification scoped to complaint owner student
+    // Notification strictly targeted to complaint student
     const newNotif: NotificationItem = {
       id: Math.random().toString(36).substring(2, 9),
-      title: `⚡ Complaint Status Updated: ${id}`,
-      message: `Complaint ${id} status updated to ${status.toUpperCase()}. Remarks: ${remarks}`,
-      timestamp: 'Just now',
+      title: notifTitle,
+      message: notifMessage,
+      timestamp: formattedTimestamp,
       read: false,
       complaintId: id,
       type: 'status_update',

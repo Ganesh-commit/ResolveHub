@@ -86,19 +86,21 @@ export const Navbar: React.FC = () => {
 
   const navItems = getNavItems();
 
-  // User-scoped notifications filtering
+  // User-scoped notifications filtering (STRICT)
   const userNotifications = notifications.filter(n => {
-    if (!authUser) return true;
+    if (!authUser) return false;
     if (authUser.role === 'student') {
       const activeReg = (authUser.regNo || authUser.username || '').toUpperCase();
-      const regMatch = !n.targetRegNo || n.targetRegNo.toUpperCase() === activeReg;
-      const roleMatch = !n.targetRole || n.targetRole === 'student' || n.targetRole === 'all';
-      return regMatch && roleMatch;
+      // If notification is a status update or targeted to a regNo, it MUST match activeReg strictly!
+      if (n.type === 'status_update' || n.targetRegNo) {
+        return n.targetRegNo ? n.targetRegNo.toUpperCase() === activeReg : false;
+      }
+      return n.targetRole === 'all' || n.targetRole === 'student';
     }
     if (authUser.role === 'super_admin' || authUser.role === 'dept_admin') {
-      return !n.targetRegNo && (n.targetRole === 'super_admin' || n.targetRole === 'dept_admin' || n.targetRole === 'all' || !n.targetRole);
+      return !n.targetRegNo && (n.targetRole === 'super_admin' || n.targetRole === 'dept_admin' || n.targetRole === 'all');
     }
-    return true;
+    return false;
   });
   const userUnreadCount = userNotifications.filter(n => !n.read).length;
 
