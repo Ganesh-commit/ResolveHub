@@ -332,7 +332,19 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => {
+    if (n.read) return false;
+    if (authUser?.role === 'student') {
+      const activeReg = (authUser.regNo || authUser.username || '').toUpperCase();
+      const regMatch = !n.targetRegNo || n.targetRegNo.toUpperCase() === activeReg;
+      const roleMatch = !n.targetRole || n.targetRole === 'student' || n.targetRole === 'all';
+      return regMatch && roleMatch;
+    }
+    if (authUser?.role === 'super_admin' || authUser?.role === 'dept_admin') {
+      return !n.targetRegNo && (n.targetRole === 'super_admin' || n.targetRole === 'dept_admin' || n.targetRole === 'all' || !n.targetRole);
+    }
+    return true;
+  }).length;
 
   const markAllNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -489,7 +501,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       attachments: data.attachments
     }).then(() => fetchComplaints()).catch(() => {});
 
-    // Create Notification
+    // Create Notification scoped to submitting student
     const newNotif: NotificationItem = {
       id: Math.random().toString(36).substring(2, 9),
       title: `📬 Complaint Registered: ${newId}`,
@@ -497,7 +509,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       timestamp: 'Just now',
       read: false,
       complaintId: newId,
-      type: 'status_update'
+      type: 'status_update',
+      targetRegNo: regNo.toUpperCase(),
+      targetRole: 'student'
     };
     setNotifications(prev => [newNotif, ...prev]);
 
@@ -511,6 +525,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedBy = authUser?.name || 'Admin';
     const role = authUser?.role === 'super_admin' ? 'Super Admin' : (authUser?.role === 'dept_admin' ? 'Department Admin' : 'Admin');
     const remarks = responseRemarks || (status.toLowerCase() === 'rejected' ? 'Complaint rejected after official verification.' : `Status updated to ${status}.`);
+
+    const curTicket = complaints.find(c => c.id === id);
+    const targetReg = curTicket?.complainant?.regNo || (curTicket?.submittedBy ? curTicket.submittedBy.match(/Reg No:\s*([A-Za-z0-9]+)/)?.[1] : undefined);
 
     // Local state update
     setComplaints(prev =>
@@ -541,7 +558,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await ticketApi.updateStatus(id, status, remarks, updatedBy, role);
     } catch (e) {}
 
-    // Notification
+    // Notification scoped to complaint owner student
     const newNotif: NotificationItem = {
       id: Math.random().toString(36).substring(2, 9),
       title: `⚡ Complaint Status Updated: ${id}`,
@@ -549,7 +566,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       timestamp: 'Just now',
       read: false,
       complaintId: id,
-      type: 'status_update'
+      type: 'status_update',
+      targetRegNo: targetReg ? targetReg.toUpperCase() : undefined,
+      targetRole: 'student'
     };
     setNotifications(prev => [newNotif, ...prev]);
 

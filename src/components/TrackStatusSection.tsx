@@ -11,7 +11,15 @@ import { ticketApi } from '../services/api';
 import type { Complaint } from '../types';
 
 export const TrackStatusSection: React.FC = () => {
-  const { complaints, trackQuery, setTrackQuery } = useResolveHub();
+  const { complaints, trackQuery, setTrackQuery, authUser } = useResolveHub();
+
+  const userRegNo = authUser?.regNo || (authUser?.role === 'student' ? authUser.username : undefined);
+  const userComplaints = complaints.filter(c => {
+    if (!userRegNo) return false;
+    const cReg = c.complainant?.regNo || '';
+    const cBy = c.submittedBy || '';
+    return cReg.toUpperCase() === userRegNo.toUpperCase() || cBy.toUpperCase().includes(userRegNo.toUpperCase());
+  });
 
   const [inputVal, setInputVal] = useState(trackQuery || '');
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
@@ -72,7 +80,11 @@ export const TrackStatusSection: React.FC = () => {
     if (trackQuery) {
       setInputVal(trackQuery);
       performSearch(trackQuery);
+    } else if (userComplaints.length > 0) {
+      setInputVal(userComplaints[0].id);
+      setActiveComplaint(userComplaints[0]);
     } else if (complaints.length > 0 && !activeComplaint) {
+      setInputVal(complaints[0].id);
       setActiveComplaint(complaints[0]);
     }
   }, [trackQuery, complaints]);
@@ -85,7 +97,7 @@ export const TrackStatusSection: React.FC = () => {
     performSearch(query);
   };
 
-  const sampleIds = ['RP-8042', 'RP-8039', 'RP-7994'];
+  const sampleIds = userComplaints.length > 0 ? userComplaints.map(c => c.id) : ['RP-8042', 'RP-8039', 'RP-7994'];
 
   return (
     <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
@@ -135,7 +147,9 @@ export const TrackStatusSection: React.FC = () => {
 
         {/* Quick Suggestion Pills */}
         <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-stone-100">
-          <span className="text-[11px] font-bold text-slate-400">Sample Reference IDs:</span>
+          <span className="text-[11px] font-bold text-slate-400">
+            {userComplaints.length > 0 ? 'Your Submitted Complaints:' : 'Sample Reference IDs:'}
+          </span>
           {sampleIds.map(id => (
             <button
               key={id}
