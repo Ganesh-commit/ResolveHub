@@ -1,90 +1,107 @@
 const express = require('express');
 const router = express.Router();
-const { db, uuidv4, logActivity } = require('../db');
+const { Ticket, uuidv4, logActivity } = require('../db');
 
 const now = () => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 const today = () => new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
 // ── GET /api/tickets — Role-based Scoped Querying & Multi-Filtering ─────────────
-router.get('/', (req, res) => {
-  let tickets = db.get('tickets').value() || [];
-  const { role, department, regNo, category, status, priority, q } = req.query;
+router.get('/', async (req, res) => {
+  try {
+    const { role, department, regNo, category, status, priority, q } = req.query;
+    let queryFilter = {};
 
-  // 1. Role-based Scoping Guard
-  if (role === 'dept_admin' && department) {
-    tickets = tickets.filter(t => t.department === department);
-  } else if (role === 'student' && regNo) {
-    const cleanRegNo = regNo.trim().toUpperCase();
-    tickets = tickets.filter(t => {
-      const cReg = t.complainant?.regNo || '';
-      const cBy = t.submittedBy || '';
-      return cReg.toUpperCase() === cleanRegNo || cBy.toUpperCase().includes(cleanRegNo);
-    });
-  }
+    // 1. Role-based Scoping Guard
+    if (role === 'dept_admin' && department) {
+      queryFilter.department = department;
+    } else if (role === 'student' && regNo) {
+      const cleanRegNo = regNo.trim().toUpperCase();
+      queryFilter.$or = [
+        { 'complainant.regNo': { $regex: cleanRegNo, $options: 'i' } },
+        { submittedBy: { $regex: cleanRegNo, $options: 'i' } }
+      ];
+    }
 
-  // 2. Multi-Field Filter Criteria
-  if (category && category !== 'all') {
-    tickets = tickets.filter(t => t.category === category);
-  }
-  if (department && department !== 'all' && role !== 'dept_admin') {
-    tickets = tickets.filter(t => t.department === department);
-  }
-  if (status && status !== 'all') {
-    tickets = tickets.filter(t => t.status.toLowerCase() === status.toLowerCase());
-  }
-  if (priority && priority !== 'all') {
-    tickets = tickets.filter(t => (t.urgency || t.priority || '').toLowerCase() === priority.toLowerCase());
-  }
+    // 2. Multi-Field Filter Criteria
+    if (category && category !== 'all') {
+      queryFilter.category = category;
+    }
+    if (department && department !== 'all' && role !== 'dept_admin') {
+      queryFilter.department = department;
+    }
+    if (status && status !== 'all') {
+      queryFilter.status = { $regex: `^${status}$`, $options: 'i' };
+    }
+    if (priority && priority !== 'all') {
+      queryFilter.$or = [
+        { urgency: { $regex: `^${priority}$`, $options: 'i' } },
+        { priority: { $regex: `^${priority}$`, $options: 'i' } }
+      ];
+    }
 
-  // 3. Text Search Query
-  if (q && q.trim()) {
-    const query = q.trim().toLowerCase();
-    tickets = tickets.filter(t => 
-      (t.id && t.id.toLowerCase().includes(query)) ||
-      (t.title && t.title.toLowerCase().includes(query)) ||
-      (t.description && t.description.toLowerCase().includes(query)) ||
-      (t.complainant?.name && t.complainant.name.toLowerCase().includes(query)) ||
-      (t.complainant?.regNo && t.complainant.regNo.toLowerCase().includes(query)) ||
-      (t.location && t.location.toLowerCase().includes(query))
-    );
-  }
+    let tickets = await Ticket.find(queryFilter).sort({ createdAt: -1 }).lean();
 
-  res.json({ success: true, count: tickets.length, data: tickets });
+    // 3. Text Search Query
+    if (q && q.trim()) {
+      const query = q.trim().toLowerCase();
+      tickets = tickets.filter(t => 
+        (t.id && t.id.toLowerCase().includes(query)) ||
+        (t.title && t.title.toLowerCase().includes(query)) ||
+        (t.description && t.description.toLowerCase().includes(query)) ||
+        (t.complainant?.name && t.complainant.name.toLowerCase().includes(query)) ||
+        (t.complainant?.regNo && t.complainant.regNo.toLowerCase().includes(query)) ||
+        (t.location && t.location.toLowerCase().includes(query))
+      );
+    }
+
+    res.json({ success: true, count: tickets.length, data: tickets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ── GET /api/tickets/track/:id — Public tracking ───────────────────────────
-router.get('/track/:id', (req, res) => {
-  const ticket = db.get('tickets').find({ id: req.params.id }).value();
-  if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
-  res.json({
-    success: true,
-    data: {
-      id: ticket.id,
-      title: ticket.title,
-      category: ticket.category,
-      department: ticket.department,
-      status: ticket.status,
-      urgency: ticket.urgency || ticket.priority,
-      complainant: ticket.complainant,
-      responseRemarks: ticket.responseRemarks || '',
-      eta: ticket.eta,
-      currentStepIndex: ticket.currentStepIndex,
-      createdAt: ticket.createdAt,
-      updatedAt: ticket.updatedAt,
-      auditLogs: ticket.auditLogs || []
-    }
-  });
+router.get('/track/:id', async (req, res) => {
+  try {
+    const ticket = await Ticket.findOne({ id: req.params.id }).lean();
+    if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+    
+    res.json({
+      success: true,
+      data: {
+        id: ticket.id,
+        title: ticket.title,
+        category: ticket.category,
+        department: ticket.department,
+        status: ticket.status,
+        urgency: ticket.urgency || ticket.priority,
+        complainant: ticket.complainant,
+        responseRemarks: ticket.responseRemarks || '',
+        eta: ticket.eta,
+        currentStepIndex: ticket.currentStepIndex,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        auditLogs: ticket.auditLogs || []
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ── GET /api/tickets/:id ─────────────────────────────────────────────────────
-router.get('/:id', (req, res) => {
-  const ticket = db.get('tickets').find({ id: req.params.id }).value();
-  if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
-  res.json({ success: true, data: ticket });
+router.get('/:id', async (req, res) => {
+  try {
+    const ticket = await Ticket.findOne({ id: req.params.id }).lean();
+    if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+    res.json({ success: true, data: ticket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ── POST /api/tickets — Submit Complaint (Auto-captures Authenticated Student Identity) ──
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       title,
@@ -125,7 +142,7 @@ router.post('/', (req, res) => {
 
     const titleExtract = title || (description.length > 55 ? description.substring(0, 52) + '...' : description);
 
-    const newTicket = {
+    const newTicket = new Ticket({
       id: newId,
       title: titleExtract,
       category,
@@ -158,12 +175,12 @@ router.post('/', (req, res) => {
         author: `Student ${regNoClean}`,
         role: 'Student',
         action: 'Complaint Logged',
-        note: `Registered with ${urgency.toUpperCase()} priority priority.`
+        note: `Registered with ${urgency.toUpperCase()} priority.`
       }]
-    };
+    });
 
-    db.get('tickets').unshift(newTicket).write();
-    logActivity(`Student ${regNoClean}`, 'Student', 'Complaint Submitted', `Submitted Complaint ID: ${newId} (${category})`);
+    await newTicket.save();
+    await logActivity(`Student ${regNoClean}`, 'Student', 'Complaint Submitted', `Submitted Complaint ID: ${newId} (${category})`);
 
     res.status(201).json({ success: true, message: `Complaint ${newId} submitted successfully!`, data: newTicket });
   } catch (err) {
@@ -172,118 +189,121 @@ router.post('/', (req, res) => {
 });
 
 // ── PATCH /api/tickets/:id/status — Status & Response/Remarks Update ───────
-router.patch('/:id/status', (req, res) => {
-  const { status, responseRemarks, updatedBy = 'Admin', role = 'Admin' } = req.body;
-  const valid = ['new', 'investigating', 'dispatched', 'resolved', 'rejected', 'Submitted', 'Under Review', 'In Progress', 'Resolved', 'Rejected'];
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { status, responseRemarks, updatedBy = 'Admin', role = 'Admin' } = req.body;
+    if (!status) return res.status(400).json({ success: false, error: 'Status is required' });
 
-  if (!status) return res.status(400).json({ success: false, error: 'Status is required' });
+    const curTicket = await Ticket.findOne({ id: req.params.id });
+    if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
 
-  const ticketRef = db.get('tickets').find({ id: req.params.id });
-  const curTicket = ticketRef.value();
-  if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+    const normalizedStatus = status.toLowerCase();
+    const stepMap = {
+      new: 0, submitted: 0,
+      investigating: 1, 'under review': 1,
+      dispatched: 2, 'in progress': 2,
+      resolved: 3,
+      rejected: 3
+    };
 
-  const normalizedStatus = status.toLowerCase();
-  const stepMap = {
-    new: 0, submitted: 0,
-    investigating: 1, 'under review': 1,
-    dispatched: 2, 'in progress': 2,
-    resolved: 3,
-    rejected: 3
-  };
+    const actionMap = {
+      new: 'Re-queued to New Intake',
+      submitted: 'Re-queued to Intake',
+      investigating: 'Investigation Initiated',
+      'under review': 'Under Department Review',
+      dispatched: 'Technician Dispatched On-Site',
+      'in progress': 'Field Action In Progress',
+      resolved: 'Issue Verified & Resolved',
+      rejected: 'Complaint Reviewed & Rejected'
+    };
 
-  const actionMap = {
-    new: 'Re-queued to New Intake',
-    submitted: 'Re-queued to Intake',
-    investigating: 'Investigation Initiated',
-    'under review': 'Under Department Review',
-    dispatched: 'Technician Dispatched On-Site',
-    'in progress': 'Field Action In Progress',
-    resolved: 'Issue Verified & Resolved',
-    rejected: 'Complaint Reviewed & Rejected'
-  };
+    const remarks = responseRemarks || (normalizedStatus === 'rejected' ? 'Complaint rejected after official verification.' : `Status updated to ${status}.`);
 
-  const remarks = responseRemarks || (normalizedStatus === 'rejected' ? 'Complaint rejected after official verification.' : `Status updated to ${status}.`);
+    const newLog = {
+      id: uuidv4(),
+      timestamp: now(),
+      author: updatedBy,
+      role: role,
+      action: actionMap[normalizedStatus] || `Status -> ${status}`,
+      note: remarks
+    };
 
-  const newLog = {
-    id: uuidv4(),
-    timestamp: now(),
-    author: updatedBy,
-    role: role,
-    action: actionMap[normalizedStatus] || `Status -> ${status}`,
-    note: remarks
-  };
+    curTicket.status = normalizedStatus;
+    curTicket.currentStepIndex = stepMap[normalizedStatus] !== undefined ? stepMap[normalizedStatus] : 1;
+    curTicket.responseRemarks = remarks;
+    curTicket.updatedAt = `${today()}, ${now()}`;
+    curTicket.auditLogs.unshift(newLog);
 
-  ticketRef.assign({
-    status: normalizedStatus,
-    currentStepIndex: stepMap[normalizedStatus] !== undefined ? stepMap[normalizedStatus] : 1,
-    responseRemarks: remarks,
-    updatedAt: `${today()}, ${now()}`,
-    auditLogs: [newLog, ...(curTicket.auditLogs || [])]
-  }).write();
+    await curTicket.save();
+    await logActivity(updatedBy, role, `Complaint Status -> ${normalizedStatus.toUpperCase()}`, `Updated Complaint ID ${curTicket.id}. Remarks: ${remarks}`);
 
-  logActivity(updatedBy, role, `Complaint Status -> ${normalizedStatus.toUpperCase()}`, `Updated Complaint ID ${curTicket.id}. Remarks: ${remarks}`);
-
-  res.json({ success: true, message: `Status updated to ${normalizedStatus}`, data: ticketRef.value() });
+    res.json({ success: true, message: `Status updated to ${normalizedStatus}`, data: curTicket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ── PATCH /api/tickets/:id/assign — Assign Department/Technician ───────────
-router.patch('/:id/assign', (req, res) => {
-  const { agentName, role: agentRole, department, updatedBy = 'Super Admin' } = req.body;
-  const ticketRef = db.get('tickets').find({ id: req.params.id });
-  const curTicket = ticketRef.value();
-  if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+router.patch('/:id/assign', async (req, res) => {
+  try {
+    const { agentName, role: agentRole, department, updatedBy = 'Super Admin' } = req.body;
+    const curTicket = await Ticket.findOne({ id: req.params.id });
+    if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
 
-  const newLog = {
-    id: uuidv4(),
-    timestamp: now(),
-    author: updatedBy,
-    role: 'Admin Dispatch',
-    action: 'Technician / Dept Assigned',
-    note: `Assigned to ${agentName} (${agentRole || 'Department Staff'}) [Dept: ${department || curTicket.department}]`
-  };
+    const newLog = {
+      id: uuidv4(),
+      timestamp: now(),
+      author: updatedBy,
+      role: 'Admin Dispatch',
+      action: 'Technician / Dept Assigned',
+      note: `Assigned to ${agentName} (${agentRole || 'Department Staff'}) [Dept: ${department || curTicket.department}]`
+    };
 
-  ticketRef.assign({
-    assignedAgent: { name: agentName, role: agentRole || 'Staff Specialist', department: department || curTicket.department },
-    department: department || curTicket.department,
-    status: curTicket.status === 'new' ? 'investigating' : curTicket.status,
-    currentStepIndex: Math.max(curTicket.currentStepIndex || 0, 1),
-    updatedAt: `${today()}, ${now()}`,
-    auditLogs: [newLog, ...(curTicket.auditLogs || [])]
-  }).write();
+    curTicket.assignedAgent = { name: agentName, role: agentRole || 'Staff Specialist', department: department || curTicket.department };
+    curTicket.department = department || curTicket.department;
+    curTicket.status = curTicket.status === 'new' ? 'investigating' : curTicket.status;
+    curTicket.currentStepIndex = Math.max(curTicket.currentStepIndex || 0, 1);
+    curTicket.updatedAt = `${today()}, ${now()}`;
+    curTicket.auditLogs.unshift(newLog);
 
-  logActivity(updatedBy, 'Admin', 'Complaint Assigned', `Assigned Complaint ${curTicket.id} to ${agentName} (${department || curTicket.department})`);
+    await curTicket.save();
+    await logActivity(updatedBy, 'Admin', 'Complaint Assigned', `Assigned Complaint ${curTicket.id} to ${agentName} (${department || curTicket.department})`);
 
-  res.json({ success: true, message: `Complaint assigned to ${agentName}`, data: ticketRef.value() });
+    res.json({ success: true, message: `Complaint assigned to ${agentName}`, data: curTicket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ── POST /api/tickets/:id/notes — Add Remarks or Internal Notes ─────────────
-router.post('/:id/notes', (req, res) => {
-  const { note, author = 'Staff Officer', role = 'Department Admin' } = req.body;
-  if (!note?.trim()) return res.status(400).json({ success: false, error: 'Note is required' });
+router.post('/:id/notes', async (req, res) => {
+  try {
+    const { note, author = 'Staff Officer', role = 'Department Admin' } = req.body;
+    if (!note?.trim()) return res.status(400).json({ success: false, error: 'Note is required' });
 
-  const ticketRef = db.get('tickets').find({ id: req.params.id });
-  const curTicket = ticketRef.value();
-  if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+    const curTicket = await Ticket.findOne({ id: req.params.id });
+    if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
 
-  const newLog = {
-    id: uuidv4(),
-    timestamp: now(),
-    author,
-    role,
-    action: 'Response Remarks Added',
-    note
-  };
+    const newLog = {
+      id: uuidv4(),
+      timestamp: now(),
+      author,
+      role,
+      action: 'Response Remarks Added',
+      note
+    };
 
-  ticketRef.assign({
-    responseRemarks: note,
-    updatedAt: `${today()}, ${now()}`,
-    auditLogs: [newLog, ...(curTicket.auditLogs || [])]
-  }).write();
+    curTicket.responseRemarks = note;
+    curTicket.updatedAt = `${today()}, ${now()}`;
+    curTicket.auditLogs.unshift(newLog);
 
-  logActivity(author, role, 'Remarks Added', `Added response remarks for Complaint ${curTicket.id}: ${note}`);
+    await curTicket.save();
+    await logActivity(author, role, 'Remarks Added', `Added response remarks for Complaint ${curTicket.id}: ${note}`);
 
-  res.json({ success: true, message: 'Remarks saved', data: ticketRef.value() });
+    res.json({ success: true, message: 'Remarks saved', data: curTicket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 module.exports = router;
-
