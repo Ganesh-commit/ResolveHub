@@ -3,43 +3,89 @@ import {
   Search, 
   CheckCircle2, 
   AlertCircle, 
-  MapPin
+  MapPin,
+  Loader2
 } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
+import { ticketApi } from '../services/api';
 import type { Complaint } from '../types';
 
 export const TrackStatusSection: React.FC = () => {
   const { complaints, trackQuery, setTrackQuery } = useResolveHub();
 
-  const [inputVal, setInputVal] = useState(trackQuery || 'RH-8942');
+  const [inputVal, setInputVal] = useState(trackQuery || '');
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const performSearch = async (searchId: string) => {
+    const query = searchId.trim().toUpperCase();
+    if (!query) return;
+
+    // 1. Check local complaints first
+    const foundLocal = complaints.find(c => c.id.toUpperCase() === query);
+    if (foundLocal) {
+      setActiveComplaint(foundLocal);
+      return;
+    }
+
+    // 2. Fetch live data from backend API
+    setLoading(true);
+    try {
+      const data: any = await ticketApi.track(query);
+      if (data && data.id) {
+        const mapped: Complaint = {
+          id: data.id,
+          title: data.title || 'Campus Grievance',
+          category: data.category || 'General',
+          department: data.department || 'Campus Administration',
+          status: data.status || 'new',
+          priority: data.urgency === 'critical' ? 'Urgent' : 'Medium',
+          urgency: data.urgency || 'medium',
+          submittedAt: data.createdAt || 'Recent',
+          updatedAt: data.updatedAt || 'Recent',
+          submittedBy: data.complainant ? `Reg No: ${data.complainant.regNo}` : 'Student',
+          complainant: data.complainant || { regNo: 'Student', name: 'Student', email: '', role: 'Student', department: '' },
+          assignedOfficer: data.assignedAgent?.name || 'Assigned Officer',
+          location: data.location || 'Main Campus',
+          description: data.description || 'Campus student grievance details.',
+          responseRemarks: data.responseRemarks || '',
+          timeline: data.timeline || [
+            { title: 'Grievance Submitted', status: 'Submitted', date: data.createdAt || 'Logged', description: 'Complaint registered in database.', completed: true },
+            { title: 'Department Review & Triage', status: 'Under Review', date: 'Triage', description: `Assigned to ${data.department || 'Department'}.`, completed: ['investigating', 'dispatched', 'resolved'].includes((data.status || '').toLowerCase()) },
+            { title: 'Action & Field Dispatch', status: 'In Progress', date: 'In Progress', description: 'Technician dispatched for field resolution.', completed: ['dispatched', 'resolved'].includes((data.status || '').toLowerCase()) },
+            { title: 'Resolution & Signoff', status: 'Resolved', date: 'Signoff', description: 'Final verification.', completed: (data.status || '').toLowerCase() === 'resolved' }
+          ],
+          auditLogs: data.auditLogs || []
+        };
+        setActiveComplaint(mapped);
+      } else {
+        setActiveComplaint(null);
+      }
+    } catch (err) {
+      setActiveComplaint(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (trackQuery) {
       setInputVal(trackQuery);
-    }
-    const query = (trackQuery || inputVal).trim().toUpperCase();
-    const found = complaints.find(c => c.id.toUpperCase() === query);
-    if (found) {
-      setActiveComplaint(found);
-    } else {
-      setActiveComplaint(complaints[0] || null);
+      performSearch(trackQuery);
+    } else if (complaints.length > 0 && !activeComplaint) {
+      setActiveComplaint(complaints[0]);
     }
   }, [trackQuery, complaints]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const query = inputVal.trim().toUpperCase();
-    const found = complaints.find(c => c.id.toUpperCase() === query);
-    if (found) {
-      setActiveComplaint(found);
-      setTrackQuery(found.id);
-    } else {
-      setActiveComplaint(null);
-    }
+    if (!query) return;
+    setTrackQuery(query);
+    performSearch(query);
   };
 
-  const sampleIds = ['RH-8942', 'RH-9021', 'RH-8410', 'RH-9104'];
+  const sampleIds = ['RP-8042', 'RP-8039', 'RP-7994'];
 
   return (
     <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
@@ -73,9 +119,17 @@ export const TrackStatusSection: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full sm:w-auto bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs px-7 py-3.5 rounded-2xl shadow-md btn-lift cursor-pointer"
+            disabled={loading}
+            className="w-full sm:w-auto bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white font-bold text-xs px-7 py-3.5 rounded-2xl shadow-md btn-lift cursor-pointer flex items-center justify-center gap-2"
           >
-            TRACK STATUS
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>FETCHING...</span>
+              </>
+            ) : (
+              <span>TRACK STATUS</span>
+            )}
           </button>
         </form>
 
@@ -88,8 +142,7 @@ export const TrackStatusSection: React.FC = () => {
               onClick={() => {
                 setInputVal(id);
                 setTrackQuery(id);
-                const found = complaints.find(c => c.id === id);
-                if (found) setActiveComplaint(found);
+                performSearch(id);
               }}
               className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-900 transition-colors cursor-pointer"
             >

@@ -26,11 +26,14 @@ import { useResolveHub } from '../context/ResolveHubContext';
 import { BTECH_DEPARTMENTS, UNIVERSITY_ISSUES } from '../data/complaintCategories';
 
 export const HeroSection: React.FC = () => {
-  const { submitComplaint, setActiveView, setTrackQuery, userLoggedIn, currentUserRegNo, setIsLoginModalOpen } = useResolveHub();
+  const { submitComplaint, setActiveView, setTrackQuery, userLoggedIn, currentUserRegNo, setIsLoginModalOpen, systemSettings } = useResolveHub();
+
+  const availableDepartments = systemSettings?.departments?.length ? systemSettings.departments : BTECH_DEPARTMENTS;
+  const availableCategories = systemSettings?.categories?.length ? systemSettings.categories : UNIVERSITY_ISSUES;
 
   const [regNoInput, setRegNoInput] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState(BTECH_DEPARTMENTS[0]);
-  const [selectedIssue, setSelectedIssue] = useState(UNIVERSITY_ISSUES[0]);
+  const [selectedDepartment, setSelectedDepartment] = useState(availableDepartments[0]);
+  const [selectedIssue, setSelectedIssue] = useState(availableCategories[0]);
   const [otherDescription, setOtherDescription] = useState('');
   const [extraDetails, setExtraDetails] = useState('');
   const [location, setLocation] = useState('');
@@ -320,7 +323,7 @@ export const HeroSection: React.FC = () => {
                       onChange={(e) => setSelectedDepartment(e.target.value)}
                       className="w-full px-3 py-2 text-[11px] bg-white/90 rounded-xl border border-stone-300 focus:bg-white focus:border-emerald-600 outline-none text-slate-900 font-bold cursor-pointer"
                     >
-                      {BTECH_DEPARTMENTS.map((dept) => (
+                      {availableDepartments.map((dept) => (
                         <option key={dept} value={dept}>
                           {dept}
                         </option>
@@ -343,7 +346,7 @@ export const HeroSection: React.FC = () => {
                       }}
                       className="w-full px-3 py-2 text-[11px] bg-white/90 rounded-xl border border-stone-300 focus:bg-white focus:border-emerald-600 outline-none text-slate-900 font-bold cursor-pointer"
                     >
-                      {UNIVERSITY_ISSUES.map((issue) => (
+                      {availableCategories.map((issue) => (
                         <option key={issue} value={issue}>
                           {issue}
                         </option>

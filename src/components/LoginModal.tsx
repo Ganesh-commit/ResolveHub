@@ -310,23 +310,7 @@ export const LoginModal: React.FC = () => {
               )}
             </button>
 
-            {/* Quick Fill Demo Student Credentials */}
-            <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium text-[11px]">Quick Demo Fill:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setStudentRegNo('241FA07001');
-                  setStudentPassword('241FA07001');
-                  setErrorMessage(null);
-                }}
-                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-extrabold cursor-pointer border border-emerald-200"
-              >
-                ⚡ Fill Active Student Demo
-              </button>
-            </div>
-
-            <div className="text-center pt-1">
+            <div className="text-center pt-2 border-t border-stone-100">
               <button
                 type="button"
                 onClick={() => setAuthMode('signup_request')}
@@ -343,7 +327,7 @@ export const LoginModal: React.FC = () => {
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div className="p-3 bg-indigo-50 rounded-2xl border border-indigo-100 text-indigo-900 text-xs mb-2 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-indigo-700 flex-shrink-0" />
-              <span>Use <strong>superadmin</strong> credentials to open Super Admin Central Control Center.</span>
+              <span>Enter official Admin credentials to access the Control Center.</span>
             </div>
 
             <div>
@@ -360,7 +344,7 @@ export const LoginModal: React.FC = () => {
                     setAdminUsername(e.target.value);
                     setErrorMessage(null);
                   }}
-                  placeholder="Enter Admin Username (e.g. superadmin)"
+                  placeholder="Enter Admin Username"
                   className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900 font-mono font-bold"
                 />
               </div>
@@ -380,38 +364,9 @@ export const LoginModal: React.FC = () => {
                     setAdminPassword(e.target.value);
                     setErrorMessage(null);
                   }}
-                  placeholder="Enter Admin Password (e.g. admin123)"
+                  placeholder="Enter Admin Password"
                   className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900 font-mono"
                 />
-              </div>
-            </div>
-
-            {/* Quick Fill Demo Admin Credentials */}
-            <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-              <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">⚡ 1-Click Demo Login:</div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminUsername('superadmin');
-                    setAdminPassword('admin123');
-                    setErrorMessage(null);
-                  }}
-                  className="px-3 py-1.5 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl text-xs font-bold cursor-pointer shadow-2xs"
-                >
-                  👑 Super Admin (superadmin)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminUsername('dept_it');
-                    setAdminPassword('admin123');
-                    setErrorMessage(null);
-                  }}
-                  className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  🏢 Dept Admin (dept_it)
-                </button>
               </div>
             </div>
 

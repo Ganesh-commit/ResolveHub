@@ -270,11 +270,11 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     fetchComplaints();
     fetchSignupRequests();
+    fetchSettings();
     if (authUser?.role === 'super_admin') {
       fetchAdmins();
       fetchStudents();
       fetchActivityLogs();
-      fetchSettings();
     }
   }, [authUser]);
 
