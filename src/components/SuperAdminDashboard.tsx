@@ -85,8 +85,8 @@ export const SuperAdminDashboard: React.FC = () => {
   const inProgressComplaints = complaints.filter(c => ['investigating', 'dispatched', 'in progress'].includes(c.status.toLowerCase())).length;
   const resolvedComplaints = complaints.filter(c => ['resolved'].includes(c.status.toLowerCase())).length;
   const rejectedComplaints = complaints.filter(c => ['rejected'].includes(c.status.toLowerCase())).length;
-  const totalStudents = studentsList.length || 2;
-  const totalAdmins = adminsList.length || 6;
+  const totalStudents = studentsList.length;
+  const totalAdmins = adminsList.length;
   const pendingSignups = signupRequests.filter(r => r.status === 'PENDING').length;
 
   // Filtered Complaints
@@ -744,46 +744,54 @@ export const SuperAdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {adminsList.map((ad) => (
-                    <tr key={ad.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-4 font-extrabold text-slate-900">{ad.name}</td>
-                      <td className="px-4 py-4 font-mono font-bold text-indigo-900">{ad.username}</td>
-                      <td className="px-4 py-4 font-semibold text-slate-700">{ad.department}</td>
-                      <td className="px-4 py-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
-                          ad.role === 'super_admin' ? 'bg-indigo-100 text-indigo-900' : 'bg-amber-100 text-amber-900'
-                        }`}>
-                          {ad.role === 'super_admin' ? 'Super Admin' : 'Dept Admin'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
-                          ad.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {ad.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-right space-x-2 whitespace-nowrap">
-                        {ad.username !== 'superadmin' && (
-                          <>
-                            <button
-                              onClick={() => toggleAdminStatus(ad.id, ad.status)}
-                              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
-                            >
-                              {ad.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button
-                              onClick={() => deleteAdminAccount(ad.id)}
-                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                              <span>Remove</span>
-                            </button>
-                          </>
-                        )}
+                  {adminsList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-medium">
+                        No Department Admin accounts created yet. Click &quot;ADD NEW DEPARTMENT ADMIN&quot; to create one.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    adminsList.map((ad) => (
+                      <tr key={ad.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-4 font-extrabold text-slate-900">{ad.name}</td>
+                        <td className="px-4 py-4 font-mono font-bold text-indigo-900">{ad.username}</td>
+                        <td className="px-4 py-4 font-semibold text-slate-700">{ad.department}</td>
+                        <td className="px-4 py-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
+                            ad.role === 'super_admin' ? 'bg-indigo-100 text-indigo-900' : 'bg-amber-100 text-amber-900'
+                          }`}>
+                            {ad.role === 'super_admin' ? 'Super Admin' : 'Dept Admin'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
+                            ad.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {ad.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right space-x-2 whitespace-nowrap">
+                          {ad.role !== 'super_admin' && ad.username !== 'superadmin' && ad.username !== 'ksaiganesh64' && (
+                            <>
+                              <button
+                                onClick={() => toggleAdminStatus(ad.id, ad.status)}
+                                className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
+                              >
+                                {ad.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={() => deleteAdminAccount(ad.id)}
+                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Remove</span>
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

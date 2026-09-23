@@ -115,6 +115,7 @@ const LOCAL_STORAGE_AUTH_KEY = 'resolvehub_auth_session_2026';
 const LOCAL_STORAGE_COMPLAINTS_KEY = 'resolvehub_campus_complaints_db';
 const LOCAL_STORAGE_NOTIFS_KEY = 'resolvehub_campus_notifs_db';
 const LOCAL_STORAGE_SIGNUP_REQ_KEY = 'resolvehub_campus_signup_requests_db';
+const LOCAL_STORAGE_ADMINS_KEY = 'resolvehub_campus_admins_db';
 
 const DEFAULT_SETTINGS: SystemSettings = {
   categories: ['Hostel & Facilities', 'IT & Network', 'Finance & Scholarship', 'Sanitation & Hygiene', 'Academics', 'Harassment & Discipline'],
@@ -200,7 +201,14 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
 
   // Admin List, Student List, Activity Logs & System Settings State
-  const [adminsList, setAdminsList] = useState<AdminUser[]>([]);
+  const [adminsList, setAdminsList] = useState<AdminUser[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_ADMINS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [studentsList, setStudentsList] = useState<StudentUser[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
@@ -302,6 +310,12 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (e) {}
   }, [signupRequests]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_ADMINS_KEY, JSON.stringify(adminsList));
+    } catch (e) {}
+  }, [adminsList]);
+
   const playNotificationChime = () => {
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -397,11 +411,11 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
     } catch (err: any) {
-      // Offline / Local Mock Fallback Logic for client-side demo when backend API is unreachable
+      // Offline / Local Fallback Logic when backend API is unreachable
       const cleanId = identifier.trim().toLowerCase();
 
-      // Check Super Admin
-      if (cleanId === 'ksaiganesh64' || cleanId === 'superadmin' || role === 'super_admin') {
+      // 1. Check Super Admin Credentials
+      if (cleanId === 'ksaiganesh64' || cleanId === 'superadmin') {
         const authData: AuthUser = {
           id: 'admin-super-01',
           name: 'System Super Admin (Sai Ganesh)',
@@ -417,28 +431,20 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      // Check Department Admins
-      const deptMap: Record<string, { name: string; dept: string }> = {
-        'dept_it': { name: 'Vikram Mehta', dept: 'IT & Network Systems' },
-        'dept_hvac': { name: 'Rahul K.', dept: 'Facilities & HVAC' },
-        'dept_finance': { name: 'Deepak Joshi', dept: 'Student Finance Bureau' },
-        'dept_sanitation': { name: 'Santosh Kumar', dept: 'Health & Sanitation' },
-        'dept_academics': { name: 'Prof. S. R. Rao', dept: 'Academics Redressal' },
-        'dept_grievance': { name: 'Dr. Anita Desai', dept: 'Internal Grievance Committee' }
-      };
+      // 2. Check Department Admins (MUST exist in adminsList created by Super Admin)
+      const foundCreatedAdmin = adminsList.find(a => a.username.toLowerCase() === cleanId && a.role === 'dept_admin');
 
-      const foundDeptAdmin = deptMap[cleanId] || adminsList.find(a => a.username.toLowerCase() === cleanId);
-
-      if (foundDeptAdmin || role === 'dept_admin') {
-        const targetDept = (foundDeptAdmin as any)?.department || (foundDeptAdmin as any)?.dept || department || 'Facilities & HVAC';
-        const targetName = (foundDeptAdmin as any)?.name || `${targetDept} Admin`;
+      if (foundCreatedAdmin) {
+        if (foundCreatedAdmin.status === 'INACTIVE') {
+          return { success: false, message: 'This Admin account has been deactivated by Super Admin.' };
+        }
         const authData: AuthUser = {
-          id: `admin-dept-${cleanId}`,
-          name: targetName,
-          username: cleanId,
+          id: foundCreatedAdmin.id,
+          name: foundCreatedAdmin.name,
+          username: foundCreatedAdmin.username,
           role: 'dept_admin',
-          department: targetDept,
-          token: `auth-token-dept-${cleanId}`
+          department: foundCreatedAdmin.department,
+          token: `auth-token-${foundCreatedAdmin.id}`
         };
         setAuthUser(authData);
         setIsLoginModalOpen(false);
@@ -447,7 +453,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      // Check Student Fallback
+      // 3. Check Student Fallback
       if (role === 'student' || /^\d+[a-zA-Z]+\d+$/.test(cleanId) || cleanId.startsWith('241fa')) {
         const regNoUpper = identifier.toUpperCase();
         const authData: AuthUser = {
@@ -466,7 +472,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      return { success: false, message: err.message || 'Authentication failed. Please check your credentials.' };
+      return { success: false, message: err.message || 'Invalid Admin Credentials! Account does not exist or has not been created by Super Admin.' };
     }
 
     return { success: false, message: 'Authentication failed.' };
@@ -807,9 +813,41 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ── ADMIN MANAGEMENT ACTIONS ──────────────────────────────────────────────
   const createDeptAdmin = async (data: { name: string; username: string; password: string; department: string }): Promise<{ success: boolean; message?: string }> => {
+    const cleanUsername = data.username.trim().toLowerCase();
+    const existing = adminsList.find(a => a.username.toLowerCase() === cleanUsername);
+    if (existing) {
+      return { success: false, message: `An Admin account with username "${cleanUsername}" already exists.` };
+    }
+
     try {
-      await authApi.createAdmin({ ...data, role: 'dept_admin' });
-      fetchAdmins();
+      let createdAdmin: AdminUser = {
+        id: `admin-dept-${Math.random().toString(36).substring(2, 8)}`,
+        name: data.name.trim(),
+        username: cleanUsername,
+        department: data.department.trim(),
+        role: 'dept_admin',
+        status: 'ACTIVE',
+        createdAt: new Date().toLocaleString('en-IN')
+      };
+
+      try {
+        const res = await authApi.createAdmin({ ...data, username: cleanUsername, role: 'dept_admin' });
+        if (res && res.id) {
+          createdAdmin = {
+            id: res.id,
+            name: res.name,
+            username: res.username,
+            department: res.department,
+            role: res.role,
+            status: res.status,
+            createdAt: res.createdAt
+          };
+        }
+      } catch (backendErr) {
+        // Local fallback when backend unavailable
+      }
+
+      setAdminsList(prev => [createdAdmin, ...prev.filter(a => a.username.toLowerCase() !== cleanUsername)]);
       fetchActivityLogs();
       addToast('success', 'Department Admin Created!', `Account created for ${data.name} (${data.department}).`);
       return { success: true, message: `Department Admin "${data.name}" created successfully for ${data.department}.` };

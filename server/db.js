@@ -73,61 +73,19 @@ async function seedInitialData() {
       });
     }
 
-    // 2. Seed Super Admin & Dept Admin Accounts
-    await Staff.deleteMany({ username: { $in: ['superadmin', 'admin', 'ksaiganesh64'] } });
+    // 2. Seed Super Admin Account & Purge Hardcoded Legacy Dept Admins
+    await Staff.deleteMany({ username: { $in: ['superadmin', 'admin', 'ksaiganesh64', 'dept_it', 'dept_hvac', 'dept_finance', 'dept_sanitation', 'dept_academics', 'dept_grievance'] } });
 
-    await Staff.insertMany([
-      {
-        id: 'admin-super-01',
-        username: 'ksaiganesh64',
-        passwordHash: hashPassword('SAI@@@killer197712200611'),
-        name: 'System Super Admin (Sai Ganesh)',
-        role: 'super_admin',
-        department: 'All Departments',
-        status: 'ACTIVE',
-        createdAt: new Date().toLocaleString('en-IN')
-      },
-      {
-        id: 'admin-dept-it',
-        username: 'dept_it',
-        passwordHash: hashPassword('admin123'),
-        name: 'Vikram Mehta',
-        role: 'dept_admin',
-        department: 'IT & Network Systems',
-        status: 'ACTIVE',
-        createdAt: '2026-09-15 08:30 AM'
-      },
-      {
-        id: 'admin-dept-hvac',
-        username: 'dept_hvac',
-        passwordHash: hashPassword('admin123'),
-        name: 'Rahul K.',
-        role: 'dept_admin',
-        department: 'Facilities & HVAC',
-        status: 'ACTIVE',
-        createdAt: '2026-09-15 08:45 AM'
-      },
-      {
-        id: 'admin-dept-finance',
-        username: 'dept_finance',
-        passwordHash: hashPassword('admin123'),
-        name: 'Deepak Joshi',
-        role: 'dept_admin',
-        department: 'Student Finance Bureau',
-        status: 'ACTIVE',
-        createdAt: '2026-09-15 09:00 AM'
-      },
-      {
-        id: 'admin-dept-sanitation',
-        username: 'dept_sanitation',
-        passwordHash: hashPassword('admin123'),
-        name: 'Santosh Kumar',
-        role: 'dept_admin',
-        department: 'Health & Sanitation',
-        status: 'ACTIVE',
-        createdAt: '2026-09-15 09:15 AM'
-      }
-    ]);
+    await Staff.create({
+      id: 'admin-super-01',
+      username: 'ksaiganesh64',
+      passwordHash: hashPassword('SAI@@@killer197712200611'),
+      name: 'System Super Admin (Sai Ganesh)',
+      role: 'super_admin',
+      department: 'All Departments',
+      status: 'ACTIVE',
+      createdAt: new Date().toLocaleString('en-IN')
+    });
 
     // 3. Seed Demo Students
     const userCount = await User.countDocuments();

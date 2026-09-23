@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Shield, ArrowRight, AlertTriangle, KeyRound, UserPlus, CheckCircle2, Clock, XCircle, Search, User, ShieldCheck, Building2, Sparkles } from 'lucide-react';
+import { X, Lock, Shield, ArrowRight, AlertTriangle, KeyRound, UserPlus, CheckCircle2, Clock, XCircle, Search, User, ShieldCheck, Building2 } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
 
 export const LoginModal: React.FC = () => {
@@ -20,8 +20,8 @@ export const LoginModal: React.FC = () => {
   // Admin Login state
   const [adminType, setAdminType] = useState<'dept_admin' | 'super_admin'>('dept_admin');
   const [selectedDept, setSelectedDept] = useState<string>('Facilities & HVAC');
-  const [adminUsername, setAdminUsername] = useState('dept_hvac');
-  const [adminPassword, setAdminPassword] = useState('admin123');
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
 
   // Signup request form state
   const [signupRegNo, setSignupRegNo] = useState('');
@@ -333,8 +333,8 @@ export const LoginModal: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setAdminType('dept_admin');
-                  setAdminUsername('dept_hvac');
-                  setAdminPassword('admin123');
+                  setAdminUsername('');
+                  setAdminPassword('');
                   setErrorMessage(null);
                 }}
                 className={`flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -351,8 +351,8 @@ export const LoginModal: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setAdminType('super_admin');
-                  setAdminUsername('ksaiganesh64');
-                  setAdminPassword('SAI@@@killer197712200611');
+                  setAdminUsername('');
+                  setAdminPassword('');
                   setErrorMessage(null);
                 }}
                 className={`flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -380,16 +380,6 @@ export const LoginModal: React.FC = () => {
                   <ShieldCheck className="w-4 h-4 text-indigo-700 flex-shrink-0" />
                   <span>Enter Super Admin credentials to access Central Control.</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminUsername('ksaiganesh64');
-                    setAdminPassword('SAI@@@killer197712200611');
-                  }}
-                  className="text-[10px] font-extrabold text-indigo-700 underline hover:text-indigo-950 whitespace-nowrap"
-                >
-                  Fill Demo
-                </button>
               </div>
             )}
 
@@ -402,15 +392,7 @@ export const LoginModal: React.FC = () => {
                 <select
                   value={selectedDept}
                   onChange={(e) => {
-                    const dept = e.target.value;
-                    setSelectedDept(dept);
-                    if (dept === 'IT & Network Systems') setAdminUsername('dept_it');
-                    else if (dept === 'Facilities & HVAC') setAdminUsername('dept_hvac');
-                    else if (dept === 'Student Finance Bureau') setAdminUsername('dept_finance');
-                    else if (dept === 'Health & Sanitation') setAdminUsername('dept_sanitation');
-                    else if (dept === 'Academics Redressal') setAdminUsername('dept_academics');
-                    else if (dept === 'Internal Grievance Committee') setAdminUsername('dept_grievance');
-                    setAdminPassword('admin123');
+                    setSelectedDept(e.target.value);
                   }}
                   className="w-full px-3.5 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-amber-600 outline-none text-slate-900 font-bold cursor-pointer"
                 >
@@ -439,7 +421,7 @@ export const LoginModal: React.FC = () => {
                     setAdminUsername(e.target.value);
                     setErrorMessage(null);
                   }}
-                  placeholder={adminType === 'dept_admin' ? 'e.g. dept_hvac or dept_it' : 'e.g. ksaiganesh64'}
+                  placeholder={adminType === 'dept_admin' ? 'Enter Department Admin Username' : 'Enter Super Admin Username'}
                   className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900 font-mono font-bold"
                 />
               </div>
@@ -465,62 +447,6 @@ export const LoginModal: React.FC = () => {
                 />
               </div>
             </div>
-
-            {/* Quick Department Login Buttons (Only for Dept Admin) */}
-            {adminType === 'dept_admin' && (
-              <div className="pt-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-600" />
-                  <span>Quick Department Admin Credentials</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDept('Facilities & HVAC');
-                      setAdminUsername('dept_hvac');
-                      setAdminPassword('admin123');
-                    }}
-                    className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200 rounded-xl text-left font-mono text-[10px] font-bold truncate transition-colors cursor-pointer"
-                  >
-                    🔧 HVAC: dept_hvac
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDept('IT & Network Systems');
-                      setAdminUsername('dept_it');
-                      setAdminPassword('admin123');
-                    }}
-                    className="p-2 bg-sky-50 hover:bg-sky-100 text-sky-950 border border-sky-200 rounded-xl text-left font-mono text-[10px] font-bold truncate transition-colors cursor-pointer"
-                  >
-                    💻 IT: dept_it
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDept('Student Finance Bureau');
-                      setAdminUsername('dept_finance');
-                      setAdminPassword('admin123');
-                    }}
-                    className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-200 rounded-xl text-left font-mono text-[10px] font-bold truncate transition-colors cursor-pointer"
-                  >
-                    💰 Finance: dept_finance
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDept('Health & Sanitation');
-                      setAdminUsername('dept_sanitation');
-                      setAdminPassword('admin123');
-                    }}
-                    className="p-2 bg-purple-50 hover:bg-purple-100 text-purple-950 border border-purple-200 rounded-xl text-left font-mono text-[10px] font-bold truncate transition-colors cursor-pointer"
-                  >
-                    🧹 Health: dept_sanitation
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Submit Button */}
             <button
