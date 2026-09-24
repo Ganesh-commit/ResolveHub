@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Shield, ArrowRight, AlertTriangle, KeyRound, UserPlus, CheckCircle2, Clock, XCircle, Search, User, ShieldCheck, Building2 } from 'lucide-react';
+import { X, Lock, Shield, ArrowRight, AlertTriangle, KeyRound, UserPlus, CheckCircle2, Clock, XCircle, Search, User, ShieldCheck, Building2, Eye, EyeOff } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
 
 export const LoginModal: React.FC = () => {
@@ -12,6 +12,12 @@ export const LoginModal: React.FC = () => {
   } = useResolveHub();
 
   const [authMode, setAuthMode] = useState<'student_login' | 'admin_login' | 'signup_request' | 'status_check'>('student_login');
+
+  // Password visibility states
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
 
   // Student Login state
   const [studentRegNo, setStudentRegNo] = useState('');
@@ -283,7 +289,7 @@ export const LoginModal: React.FC = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type={showStudentPassword ? 'text' : 'password'}
                   required
                   value={studentPassword}
                   onChange={(e) => {
@@ -291,8 +297,17 @@ export const LoginModal: React.FC = () => {
                     setErrorMessage(null);
                   }}
                   placeholder="Enter Password"
-                  className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900 font-mono"
+                  className="w-full pl-10 pr-10 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900 font-mono"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowStudentPassword(!showStudentPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-md transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showStudentPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showStudentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -435,7 +450,7 @@ export const LoginModal: React.FC = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type={showAdminPassword ? 'text' : 'password'}
                   required
                   value={adminPassword}
                   onChange={(e) => {
@@ -443,8 +458,17 @@ export const LoginModal: React.FC = () => {
                     setErrorMessage(null);
                   }}
                   placeholder="Enter Password"
-                  className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900 font-mono"
+                  className="w-full pl-10 pr-10 py-3 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900 font-mono"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-md transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -556,28 +580,50 @@ export const LoginModal: React.FC = () => {
                 <label className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1">
                   Password *
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
-                  placeholder="Set Password"
-                  className="w-full px-4 py-2.5 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900"
-                />
+                <div className="relative">
+                  <input
+                    type={showSignupPassword ? 'text' : 'password'}
+                    required
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    placeholder="Set Password"
+                    className="w-full pl-4 pr-9 py-2.5 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-md transition-colors cursor-pointer"
+                    tabIndex={-1}
+                    aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showSignupPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider block mb-1">
                   Confirm Password *
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={signupConfirmPassword}
-                  onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                  placeholder="Confirm Password"
-                  className="w-full px-4 py-2.5 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900"
-                />
+                <div className="relative">
+                  <input
+                    type={showSignupConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    placeholder="Confirm Password"
+                    className="w-full pl-4 pr-9 py-2.5 text-xs bg-stone-50 rounded-xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-md transition-colors cursor-pointer"
+                    tabIndex={-1}
+                    aria-label={showSignupConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showSignupConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
             </div>
 

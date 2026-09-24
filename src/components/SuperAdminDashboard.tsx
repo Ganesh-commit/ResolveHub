@@ -17,6 +17,7 @@ import {
   Plus,
   Trash2,
   Eye,
+  EyeOff,
   Check,
   X,
   Flame,
@@ -68,6 +69,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminUsername, setNewAdminUsername] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
   const [newAdminDept, setNewAdminDept] = useState('IT & Network Systems');
   const [addAdminError, setAddAdminError] = useState<string | null>(null);
 
@@ -1133,14 +1135,25 @@ export const SuperAdminDashboard: React.FC = () => {
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Password *</label>
-                <input
-                  type="password"
-                  required
-                  value={newAdminPassword}
-                  onChange={(e) => setNewAdminPassword(e.target.value)}
-                  placeholder="Set Admin Password"
-                  className="w-full px-3.5 py-2.5 bg-stone-50 rounded-xl border border-stone-200 focus:bg-white outline-none font-mono"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewAdminPassword ? 'text' : 'password'}
+                    required
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                    placeholder="Set Admin Password"
+                    className="w-full pl-3.5 pr-9 py-2.5 bg-stone-50 rounded-xl border border-stone-200 focus:bg-white outline-none font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewAdminPassword(!showNewAdminPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-md transition-colors cursor-pointer"
+                    tabIndex={-1}
+                    aria-label={showNewAdminPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
