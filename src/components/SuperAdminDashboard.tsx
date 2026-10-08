@@ -58,7 +58,7 @@ export const SuperAdminDashboard: React.FC = () => {
     addToast
   } = useResolveHub();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'complaints' | 'students' | 'admins' | 'settings' | 'reports' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'complaints' | 'students' | 'requests' | 'admins' | 'settings' | 'reports' | 'logs'>('dashboard');
 
   // Socket.io Realtime Listener for new account requests
   useEffect(() => {
@@ -75,7 +75,8 @@ export const SuperAdminDashboard: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (activeView === 'super_admin_students') setActiveTab('students');
+    if (activeView === 'super_admin_requests') setActiveTab('requests');
+    else if (activeView === 'super_admin_students') setActiveTab('students');
     else if (activeView === 'super_admin_admins' || activeView === 'super_admin_roles') setActiveTab('admins');
     else if (activeView === 'super_admin_settings' || activeView === 'super_admin_departments') setActiveTab('settings');
     else if (activeView === 'super_admin_analytics') setActiveTab('reports');
@@ -835,7 +836,7 @@ export const SuperAdminDashboard: React.FC = () => {
       )}
 
       {/* ── STUDENT MANAGEMENT & SIGNUP APPROVALS VIEW ── */}
-      {activeTab === 'students' && (
+      {(activeTab === 'students' || activeTab === 'requests') && (
         <div className="space-y-6">
           {/* Student Signup Verification Section */}
           <div className="bg-amber-50 dark:bg-amber-950/20 rounded-3xl p-6 border border-amber-200 dark:border-amber-900/50 shadow-xs space-y-4">
@@ -849,34 +850,94 @@ export const SuperAdminDashboard: React.FC = () => {
                   Verify Registration Numbers before activating student account credentials.
                 </p>
               </div>
-              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-mono">
-                {pendingSignups} Pending
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-mono">
+                  {signupRequests.filter(r => r.status === 'PENDING').length} Pending
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-mono">
+                  {signupRequests.filter(r => r.status === 'APPROVED').length} Approved
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-200 font-mono">
+                  {signupRequests.filter(r => r.status === 'REJECTED').length} Rejected
+                </span>
+              </div>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            {/* Sub-tab Pill Selectors for Request Filters */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-b border-amber-200/60 dark:border-amber-900/40 pb-3">
+              <button
+                type="button"
+                onClick={() => setSignupStatusFilter('PENDING')}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  signupStatusFilter === 'PENDING'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-100/60 border border-amber-200 dark:border-slate-700'
+                }`}
+              >
+                <span>⏳ Pending Requests</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/20 font-mono">
+                  {signupRequests.filter(r => r.status === 'PENDING').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSignupStatusFilter('APPROVED')}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  signupStatusFilter === 'APPROVED'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100/60 border border-amber-200 dark:border-slate-700'
+                }`}
+              >
+                <span>✅ Accepted / Approved</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/20 font-mono">
+                  {signupRequests.filter(r => r.status === 'APPROVED').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSignupStatusFilter('REJECTED')}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  signupStatusFilter === 'REJECTED'
+                    ? 'bg-rose-700 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-100/60 border border-amber-200 dark:border-slate-700'
+                }`}
+              >
+                <span>❌ Rejected Requests</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/20 font-mono">
+                  {signupRequests.filter(r => r.status === 'REJECTED').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSignupStatusFilter('ALL')}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  signupStatusFilter === 'ALL'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border border-stone-200 dark:border-slate-700'
+                }`}
+              >
+                <span>📋 All Requests</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono">
+                  {signupRequests.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search request by Reg No, Name, Email..."
+                  placeholder="Search request by Reg No, Name, Email, Department..."
                   value={signupSearch}
                   onChange={(e) => setSignupSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 text-xs bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-[#8a2410] text-slate-900 dark:text-white"
                 />
               </div>
-
-              <select
-                value={signupStatusFilter}
-                onChange={(e) => setSignupStatusFilter(e.target.value as any)}
-                className="px-3 py-2 text-xs font-bold bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 rounded-xl outline-none text-slate-800 dark:text-slate-200"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="PENDING">Pending Only</option>
-                <option value="APPROVED">Approved Only</option>
-                <option value="REJECTED">Rejected Only</option>
-              </select>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-amber-200 dark:border-slate-700 overflow-x-auto">

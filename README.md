@@ -1,176 +1,194 @@
-# 🎓 ResolveHub — Mana Complaint Management System
+# 🎓 Vignan's ResolveHub — University Grievance Resolution Portal
 
-![ResolveHub Student Portal Screenshot](./public/screenshots/media__1789498871877.png)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel)](https://resolve-hub-seven.vercel.app/)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Express.js](https://img.shields.io/badge/Express.js-4.19-000000?style=for-the-badge&logo=express)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-4.7-010101?style=for-the-badge&logo=socket.io)](https://socket.io/)
 
-> **ResolveHub** is a state-of-the-art, full-stack University Complaint & Grievance Management System designed to bridge the communication gap between university students, Department Heads, and Super Administration. Built with React, TypeScript, Tailwind CSS, Express, and Node.js.
-
----
-
-## 🌟 Key Highlights & Features
-
-### 🏛️ 1. Student Portal & Landing Page
-- **Professional Multi-Section Home Landing**:
-  - **Hero Section**: Campus illustration background (`CivicCommunityBg`), ResolveHub branding, and dual CTA buttons (`REPORT A COMPLAINT` & `TRACK MY COMPLAINT`).
-  - **Why ResolveHub?**: Mission statement highlighting administrative accountability, real-time progress visibility, and protected student privacy.
-  - **What You Can Do**: Interactive cards leading to key features (*Report Complaint*, *Track Status*, *My Complaints*, *Notifications*, *Help & FAQ*, *Student Feedback*).
-  - **How It Works (4-Step Flow)**: `Submit Complaint` → `Admin Review` → `Department Action` → `Resolution & Alert`.
-  - **Supported Categories**: Academic Issues, Hostel & Housing, Wi-Fi & Internet, Infrastructure, Transport & Parking, Cleanliness & Sanitation, Security & Safety, and Student Welfare.
-  - **Audit Stage Timeline**: Interactive stage cards showcasing `Pending` → `Under Review` → `In Progress` → `Resolved` → `Closed`.
-  - **University at a Glance Statistics**: Dynamic stats connected directly to backend data (*Complaints Submitted*, *Issues Resolved*, *Active Departments*, *Students Supported*).
-  - **Recent Campus Maintenance Updates**: Maintenance notices, Wi-Fi upgrades, library AC servicing, and evening bus schedule extensions.
-  - **Student Testimonials**: Authentic feedback from CSE, ECE, and Mechanical engineering students.
-  - **Frequently Asked Questions Accordion**: Expandable answers addressing submission rules, tracking, privacy, mandatory proof, and resolution process.
-- **Dedicated Complaint Submission Page (`REPORT COMPLAINT`)**:
-  - Student registration number verification (`241FA07011`, etc.).
-  - B.Tech Department selection (CSE, ECE, MECH, CIVIL, IT, EEE, AIDS, AIML).
-  - Complaint category selection and detailed location input.
-  - **Mandatory Photo / Document Proof Upload**: Enforces file attachment before ticket submission.
-- **Live Complaint Status Tracker**:
-  - Search by unique Complaint ID (e.g., `#HUB-8492`) or registration number.
-  - View current status, assigned handling officer, and official audit remarks.
+> **Vignan's ResolveHub** is an enterprise-grade, full-stack University Grievance & Student Welfare Resolution Portal. Built for **Vignan University**, it connects students, department administrators, and system super administrators into a unified, full-screen, edge-to-edge governance ecosystem.
 
 ---
 
-### 🛡️ 2. Super Admin Management Dashboard
-![Super Admin Dashboard Screenshot](./public/screenshots/media__1789495130986.png)
+## 🌐 Live Web Application
 
-- **Centralized System Oversight**: Total complaints, pending, in-progress, resolved, rejected, and urgent complaints.
-- **Global Ticket Management**: Assign tickets to department admins, update ticket status, append official audit remarks, and filter by department or category.
-- **Student Signup Request Verification**:
-  - Review student registration requests.
-  - One-click **Approve** or **Reject** student accounts with automated notifications.
-- **Department Admin Account Creation**:
-  - Add new department admins (e.g. `cse_admin`, `ece_admin`) with assigned password and department.
-  - Toggle active/inactive status or delete admin accounts.
-- **System Activity Audit Logs & Settings**: Full operational audit trail of system activities and configurable SLA thresholds.
+🔗 **[https://resolve-hub-seven.vercel.app/](https://resolve-hub-seven.vercel.app/)**
 
 ---
 
-### 🏢 3. Department Admin Dashboard
-- **Department-Scoped Workspace**: Automatically filtered for the logged-in Department Admin's assigned branch (e.g., Computer Science & Engineering).
-- **Branch Grievance Resolution**: Update complaint status (`Pending` → `In Progress` → `Resolved`), assign field crew, and upload resolution remarks.
+## 📸 Application Screenshots & Visual Gallery
+
+### 🏛️ 1. Super Admin Overview Dashboard & Manage Navigation Header
+![Super Admin Manage Header](docs/images/superadmin_manage_header.png)
+*Super Admin governance header featuring the **Manage** dropdown menu with direct links to **Student Requests**, **Students List**, **Departments**, **Department Admins**, and **Access & Roles**.*
 
 ---
 
-## 📸 Visual Gallery
+### 🌐 2. Full-Width Edge-to-Edge Campus Grievance Portal
+![Portal Hero Banner](docs/images/portal_hero_banner.png)
+*Full-screen responsive hero section featuring Vignan University branding, campus image carousel, and instant grievance action shortcuts.*
 
-| Section | Preview |
-| :--- | :--- |
-| **Student Landing Page** | ![Student Portal](./public/screenshots/media__1789498871877.png) |
-| **Super Admin Dashboard** | ![Super Admin Portal](./public/screenshots/media__1789495130986.png) |
-| **Live Student View** | ![Student Home](./public/screenshots/media__1789497743847.png) |
+---
+
+### 📝 3. Student Registration & Account Verification Hub
+![Student Registration Request](docs/images/student_registration_request.png)
+*Dedicated Student Signup Verification Hub with distinct tab filters for **Pending Requests**, **Accepted / Approved**, **Rejected Requests**, and **All Signup Requests**.*
+
+---
+
+### 📎 4. Multi-File Evidence Attachments & Image Lightbox Preview
+![Complaint Attachments & Lightbox](docs/images/complaint_attachments_lightbox.png)
+*Comprehensive evidence attachments pipeline featuring image Lightbox modal preview, PDF/document download buttons, and physical file unlinking on ticket deletion.*
+
+---
+
+### 📑 5. Grievance Submission Form
+![Student Report Form](docs/images/student_report_form.png)
+*Student intake form supporting registration number verification, category & department assignment, location details, and multipart file upload.*
+
+---
+
+### ⏱️ 6. Student Dashboard & SLA Resolution Stepper
+![Student Dashboard Timeline](docs/images/student_dashboard_timeline.png)
+*Student dashboard displaying real-time grievance tracking with audit stage progress stepper, field technician assignment, and official response remarks.*
+
+---
+
+### 📊 7. Department Analytics & Performance Reports
+![Analytics Reports](docs/images/analytics_reports.png)
+*Visual breakdown of complaint volume by department, priority distribution, and SLA resolution compliance metrics.*
+
+---
+
+## 🌟 Key Features & Architectural Highlights
+
+### 🛡️ 1. Password-First Security Authentication
+- **Secure Password-First Verification**: On student login attempts, the backend verifies the submitted password against the stored bcrypt hash **FIRST** before inspecting account status (`PENDING`, `REJECTED`, `INACTIVE`).
+- **Zero Information Leakage**: Unauthenticated login attempts with wrong passwords return standard `401 Invalid credentials`, preventing registration number enumeration or unauthenticated status probing.
+- **Seeded Demo Student Account**: Idempotent seeding script creates pre-approved active demo student account (`241FA07011` / `241FA07011`).
+
+### 🏛️ 2. Super Admin "Student Requests" Verification Hub
+- **Manage Dropdown Menu Option**: Direct menu link inside the Super Admin top navigation bar to navigate straight to **Student Requests**.
+- **Categorized Sub-Tabs**:
+  - ⏳ **Pending Requests**: Unprocessed registration requests awaiting Super Admin verification.
+  - ✅ **Accepted / Approved**: Activated student accounts.
+  - ❌ **Rejected Requests**: Denied registration attempts with rejection reason notes.
+  - 📋 **All Requests**: Unified listing of all intake requests.
+  - 🎓 **Active Students Database**: Complete student registry with password reset, status toggle, and account deletion controls.
+- **Real-Time Socket.io Alerts**: Instant push notifications when a new student submits a registration request.
+
+### 📎 3. Complaint Attachments Pipeline & Image Lightbox
+- **Multipart Upload Middleware**: Multer-backed storage for up to 5 files per complaint (images, PDFs, DOC, DOCX up to 5MB each).
+- **Interactive Lightbox Preview**: High-resolution image preview modal overlay in both Student and Super Admin complaint detail views.
+- **Document Download**: Direct view and download buttons for attached PDF and Word documents.
+- **Disk Cleanup**: Physical deletion of uploaded attachments from `/uploads/attachments/` when a ticket is deleted.
+
+### ⚡ 4. Automatic SLA Escalation Worker
+- **Background Worker**: Evaluates ticket age against category SLA thresholds (Critical: 2 hrs, High: 4 hrs, Medium: 8 hrs, Low: 24 hrs).
+- **Auto-Escalation**: Automatically escalates unhandled tickets and emits real-time alerts.
+
+---
+
+## 🔑 Default Credentials (Role-Based Access Control)
+
+| Role | Username / Reg No | Password | Permissions & Rights |
+| :--- | :--- | :--- | :--- |
+| 👑 **Super Admin** | `ksaiganesh64` | `SAI@@@killer197712200611` | Complete system control, student request verification, admin creation, system settings & audit logs |
+| 🎓 **Demo Student** | `241FA07011` | `241FA07011` | Submit grievances, attach media evidence, track live progress, view student dashboard |
+| 🏢 **Dept Admin (CSE)** | `dept_cse` | `admin123` | Department-scoped inbox, assign field technicians, update status & audit remarks |
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide Icons, Vite
-- **Backend**: Node.js, Express.js REST API
-- **State Management & Context**: React Context API (`ResolveHubContext`)
-- **Persistence**: JSON file persistence server & localStorage fallback
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide React Icons, Vite
+- **Backend API**: Node.js, Express.js REST Framework
+- **Database**: MongoDB Atlas / Local MongoDB fallback with Mongoose ODM
+- **Real-Time Engine**: Socket.io Server & Client
+- **Authentication**: JSON Web Tokens (JWT) + Bcrypt password hashing
+- **File Storage**: Multer multipart middleware with static `/uploads` serving
 
 ---
 
-## 🚀 Getting Started (Run Locally)
+## 📡 API Endpoint Reference
+
+### 🔐 Authentication & Student Registration
+- `POST /api/v1/auth/login` — Authenticates Super Admin, Dept Admin, or Student (Password-First).
+- `POST /api/v1/auth/signup-request` — Submits new student account registration request.
+- `GET /api/v1/auth/signup-requests` — Fetches all registration requests (Super Admin only).
+- `POST /api/v1/auth/signup-requests/:id/approve` — Approves signup request & activates student account.
+- `POST /api/v1/auth/signup-requests/:id/reject` — Rejects signup request with reason.
+- `DELETE /api/v1/auth/signup-requests/:id` — Deletes signup request record.
+- `GET /api/v1/auth/students` — Fetches active student accounts database.
+- `DELETE /api/v1/auth/students/:id` — Removes student account and associated signup records.
+- `POST /api/v1/auth/students/:id/reset-password` — Super Admin student password reset.
+
+### 📋 Grievances & Complaints
+- `GET /api/v1/tickets` — Fetches complaints with role, department, and category filtering.
+- `POST /api/v1/tickets` — Submits new complaint with multipart file attachments (`files`).
+- `GET /api/v1/tickets/track/:id` — Public ticket status tracking by Complaint ID.
+- `PATCH /api/v1/tickets/:id/status` — Updates ticket status & appends official response remarks.
+- `PATCH /api/v1/tickets/:id/assign` — Assigns field technician/officer to ticket.
+- `DELETE /api/v1/tickets/:id` — Deletes complaint and physically unlinks attached files.
+
+---
+
+## 🚀 Running Locally
 
 ### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) (v18 or higher) installed on your system.
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [MongoDB](https://www.mongodb.com/) (Local server or MongoDB Atlas cluster URI)
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/your-username/complaint11.git
+git clone https://github.com/Ganesh-commit/ResolveHub.git
 cd complaint11
+
+# Install Root / Frontend dependencies
 npm install
+
+# Install Server dependencies
+cd server
+npm install
+cd ..
 ```
 
-### 2. Start Backend Server
-In one terminal window, run the Express backend API server:
+### 2. Configure Environment Variables
+Create a `.env` file inside the `server/` folder (or copy `server/.env.example`):
+```env
+PORT=3001
+MONGODB_URI=mongodb://127.0.0.1:27017/resolvehub
+JWT_SECRET=vignan_resolvehub_super_secret_jwt_key_2026
+SUPERADMIN_USERNAME=ksaiganesh64
+SUPERADMIN_PASSWORD=SAI@@@killer197712200611
+DEMO_STUDENT_REG_NO=241FA07011
+DEMO_STUDENT_PASSWORD=241FA07011
+```
+
+### 3. Start Backend Express Server
 ```bash
-node server/index.js
+cd server
+npm start
 ```
-*Backend server will start running at `http://localhost:3001`.*
+*Server starts on `http://localhost:3001` and seeds initial Super Admin & Demo Student.*
 
-### 3. Start Frontend Dev Server
-In a second terminal window, run the Vite dev server:
+### 4. Start Frontend Dev Server
+In a separate terminal window:
 ```bash
 npm run dev
 ```
-*Frontend app will start running at `http://localhost:5173`.*
+*Vite dev server starts on `http://localhost:5173`.*
 
-### 4. Build for Production
-To test production TypeScript compilation and build output:
+### 5. Run Backend Automated Test Suite
 ```bash
-npm run build
+cd server
+npm test
 ```
 
 ---
 
-## 🔑 Test Credentials (Role-Based Access Control)
+## 📜 License & Ownership
 
-| Role | Username / Identifier | Password | Access Rights |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `superadmin` | `admin123` | Complete control over all departments, signup approvals, and admin accounts |
-| **Dept Admin (CSE)** | `cse_admin` | `admin123` | Department-level management for CSE complaints |
-| **Student** | `241FA07011` | `student123` | Report complaints, track live status, view personal history & notifications |
-
----
-
-## 📁 Project Structure
-
-```
-complaint11/
-├── server/
-│   ├── index.js             # Express API Server & Data Persistence
-│   └── data.json            # Central JSON Database Storage
-├── src/
-│   ├── components/
-│   │   ├── HomePage.tsx               # Main Student Landing Page with Multi-Sections
-│   │   ├── HeroSection.tsx            # Dedicated Complaint Submission Form
-│   │   ├── Navbar.tsx                 # Responsive Header with Navigation & Dropdowns
-│   │   ├── SuperAdminDashboard.tsx    # Super Admin Dashboard & Registration Verification
-│   │   ├── DeptAdminDashboard.tsx     # Department Admin Resolution Workspace
-│   │   ├── StudentDashboard.tsx       # Student Profile Dashboard & Notifications
-│   │   ├── TrackStatusSection.tsx     # Live Complaint Status Tracker
-│   │   ├── MyComplaintsSection.tsx    # Student Complaints History
-│   │   └── CivicCommunityBg.tsx       # Campus Vector Artwork Background
-│   ├── context/
-│   │   └── ResolveHubContext.tsx      # Global Context State & API Service Integration
-│   ├── services/
-│   │   └── api.ts                     # REST API Client Service Layer
-│   ├── types/
-│   │   └── index.ts                   # TypeScript Interfaces & Data Contracts
-│   ├── App.tsx                        # Master App Layout & View Routing
-│   └── main.tsx                       # React DOM Application Entrypoint
-├── public/
-│   └── screenshots/                   # Application Screenshots & Documentation Assets
-└── README.md                          # Project Documentation
-```
-
----
-
-## 📜 License & Acknowledgements
-Built for University Campus Infrastructure & Student Welfare Management. All rights reserved © 2026 **ResolveHub Team**.
-
-
-
-# ResolveHub
-
-University Complaint & Grievance Management System.
-
-## 🌐 Live Demo
-
-[Visit ResolveHub Live Website](https://resolve-hub-seven.vercel.app/)
-
-## 🚀 Tech Stack
-
-- React
-- TypeScript
-- Tailwind CSS
-- Node.js
-- Express.js
-- Vercel
-- Render
-
-## 🌐 Live Demo
-
-🔗 https://resolve-hub-seven.vercel.app/
+Developed for **Vignan's Foundation for Science, Technology & Research (Vignan University)**. All rights reserved © 2026 **ResolveHub Development Team**.

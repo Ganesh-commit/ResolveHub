@@ -173,6 +173,7 @@ export type ViewMode =
   | 'super_admin_complaints'
   | 'super_admin_departments'
   | 'super_admin_students'
+  | 'super_admin_requests'
   | 'super_admin_admins'
   | 'super_admin_roles'
   | 'super_admin_analytics'

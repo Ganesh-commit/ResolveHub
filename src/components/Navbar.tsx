@@ -41,11 +41,13 @@ export const Navbar: React.FC = () => {
     unreadCount, 
     markAllNotificationsAsRead, 
     markNotificationAsRead,
-    setIsLoginModalOpen
+    setIsLoginModalOpen,
+    signupRequests
   } = useResolveHub();
 
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
+  const pendingRequestsCount = signupRequests?.filter(r => r.status === 'PENDING').length || 0;
 
   // Dropdown States
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -88,7 +90,7 @@ export const Navbar: React.FC = () => {
   const isSuperAdmin = authUser?.role === 'super_admin';
 
   // Check active state helpers
-  const isManageActive = activeView.startsWith('super_admin_departments') || activeView.startsWith('super_admin_students') || activeView.startsWith('super_admin_admins') || activeView.startsWith('super_admin_roles') || activeView.startsWith('dept_admin_students');
+  const isManageActive = activeView.startsWith('super_admin_departments') || activeView.startsWith('super_admin_students') || activeView.startsWith('super_admin_requests') || activeView.startsWith('super_admin_admins') || activeView.startsWith('super_admin_roles') || activeView.startsWith('dept_admin_students');
 
   return (
     <header className="w-full sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-stone-200 dark:border-slate-800 transition-colors duration-200">
@@ -249,28 +251,42 @@ export const Navbar: React.FC = () => {
                 </button>
 
                 {manageDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl shadow-xl py-2 z-50 text-xs font-bold animate-slide-down">
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl shadow-xl py-2 z-50 text-xs font-bold animate-slide-down">
+                    <button
+                      onClick={() => handleNavClick('super_admin_requests')}
+                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center justify-between cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-amber-500" />
+                        <span>Student Requests</span>
+                      </div>
+                      {pendingRequestsCount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white font-mono">
+                          {pendingRequestsCount}
+                        </span>
+                      )}
+                    </button>
                     <button
                       onClick={() => handleNavClick('super_admin_departments')}
-                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2"
+                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2 cursor-pointer"
                     >
                       <Building2 className="w-4 h-4 text-amber-500" /> Departments
                     </button>
                     <button
                       onClick={() => handleNavClick('super_admin_students')}
-                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2"
+                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2 cursor-pointer"
                     >
                       <Users className="w-4 h-4 text-blue-500" /> Students List
                     </button>
                     <button
                       onClick={() => handleNavClick('super_admin_admins')}
-                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2"
+                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2 cursor-pointer"
                     >
                       <UserCog className="w-4 h-4 text-emerald-500" /> Department Admins
                     </button>
                     <button
                       onClick={() => handleNavClick('super_admin_roles')}
-                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2"
+                      className="w-full px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700/60 hover:text-[#8a2410] flex items-center gap-2 cursor-pointer"
                     >
                       <Key className="w-4 h-4 text-purple-500" /> Access & Roles
                     </button>
