@@ -64,6 +64,10 @@ async function connectDB() {
 // ── Database Auto-Seeder ─────────────────────────────────────────────────
 async function seedInitialData() {
   try {
+    // Clear student 241FA07011 to allow fresh student registration testing
+    await User.deleteMany({ regNo: '241FA07011' }).catch(() => {});
+    await SignupRequest.deleteMany({ regNo: '241FA07011' }).catch(() => {});
+
     // 1. Seed System Settings
     const settingCount = await SystemSetting.countDocuments();
     if (settingCount === 0) {

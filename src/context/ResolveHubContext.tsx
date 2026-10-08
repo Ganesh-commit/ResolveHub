@@ -163,7 +163,15 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_AUTH_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.regNo === '241FA07011' || parsed?.username === '241FA07011') {
+          localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
+          return null;
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
