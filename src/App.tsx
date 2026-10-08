@@ -1,12 +1,12 @@
 import React from 'react';
 import { ResolveHubProvider, useResolveHub } from './context/ResolveHubContext';
 import { Navbar } from './components/Navbar';
-import { HomePage } from './components/HomePage';
 import { HeroSection } from './components/HeroSection';
-import { DashboardSection } from './components/DashboardSection';
 import { MyComplaintsSection } from './components/MyComplaintsSection';
 import { TrackStatusSection } from './components/TrackStatusSection';
 import { HelpFaqSection } from './components/HelpFaqSection';
+import { NotificationsPage } from './components/NotificationsPage';
+import { ProfileSettingsPage } from './components/ProfileSettingsPage';
 import { LoginModal } from './components/LoginModal';
 import { ComplaintDetailModal } from './components/ComplaintDetailModal';
 import { ToastContainer } from './components/ToastContainer';
@@ -14,142 +14,170 @@ import { PushNotificationBanner } from './components/PushNotificationBanner';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { DeptAdminDashboard } from './components/DeptAdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
-import { Megaphone } from 'lucide-react';
+import { AdvancedAIChatbot } from './components/AdvancedAIChatbot';
+import { PublicLandingPage } from './components/PublicLandingPage';
+import { AboutPage } from './components/AboutPage';
+import { HomePage } from './components/HomePage';
+import { ShieldCheck } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { activeView, setActiveView, setIsLoginModalOpen, authUser } = useResolveHub();
+  const { activeView, setActiveView, authUser } = useResolveHub();
+
+  // 1. Render Public Animated Landing Page if user is unauthenticated on "/" or "home" / "dashboard"
+  if (!authUser && (activeView === 'home' || activeView === 'dashboard' || activeView === 'landing')) {
+    return (
+      <div className="min-h-screen bg-[#faf7f4]">
+        <PublicLandingPage />
+        <LoginModal />
+        <ComplaintDetailModal />
+        <ToastContainer />
+        <PushNotificationBanner />
+        <AdvancedAIChatbot />
+      </div>
+    );
+  }
+
+  // 2. Render Public About Us Page if activeView is 'about'
+  if (activeView === 'about') {
+    return (
+      <div className="min-h-screen bg-[#faf7f4]">
+        <AboutPage />
+        <LoginModal />
+        <ComplaintDetailModal />
+        <ToastContainer />
+        <PushNotificationBanner />
+        <AdvancedAIChatbot />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#faf8f5] text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#faf8f5] text-slate-900 selection:bg-rose-100 selection:text-rose-950 font-sans relative flex flex-col">
       
-      {/* Fixed Top Navigation Bar */}
+      {/* 1. Sticky Horizontal Top Navbar */}
       <Navbar />
 
-      {/* Main View Area */}
-      <main className="flex-1 w-full pt-16">
-        {/* Role-based Dashboard Views */}
-        {activeView === 'super_admin_dashboard' && <SuperAdminDashboard />}
-        {activeView === 'dept_admin_dashboard' && <DeptAdminDashboard />}
-        {activeView === 'student_dashboard' && <StudentDashboard />}
-
-        {/* Public or Role-Scoped Main Dashboard View */}
-        {activeView === 'dashboard' && (
-          authUser?.role === 'super_admin' ? <SuperAdminDashboard /> :
-          authUser?.role === 'dept_admin' ? <DeptAdminDashboard /> :
-          authUser?.role === 'student' ? <StudentDashboard /> :
-          <DashboardSection />
-        )}
-
-        {/* Public Views */}
-        {activeView === 'home' && (
-          authUser?.role === 'super_admin' ? <SuperAdminDashboard /> :
-          authUser?.role === 'dept_admin' ? <DeptAdminDashboard /> :
-          <HomePage />
-        )}
-
-        {activeView === 'report' && (
-          authUser?.role === 'super_admin' ? <SuperAdminDashboard /> :
-          authUser?.role === 'dept_admin' ? <DeptAdminDashboard /> :
-          <HeroSection />
-        )}
-
-        {activeView === 'my-complaints' && <MyComplaintsSection />}
-        {activeView === 'track' && <TrackStatusSection />}
-        {activeView === 'faq' && <HelpFaqSection />}
-      </main>
-
-      {/* Global Modals & Notifications */}
-      <LoginModal />
-      <ComplaintDetailModal />
-      <ToastContainer />
-      <PushNotificationBanner />
-
-      {/* Footer */}
-      <footer className="w-full bg-slate-900 text-white pt-14 pb-8 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
+      {/* 2. Main Dashboard Content Area */}
+      <div className="flex-1 flex flex-col w-full">
+        
+        <main className="flex-1 w-full animate-fade-in">
           
-          {/* Col 1: Logo & Vision */}
-          <div className="md:col-span-2 space-y-4">
+          {/* Profile & Account Settings */}
+          {activeView === 'profile' && (
+            <ProfileSettingsPage />
+          )}
+
+          {/* Notifications Center */}
+          {activeView === 'notifications' && (
+            <NotificationsPage />
+          )}
+
+          {/* Super Admin Dashboard Sub-views */}
+          {(activeView === 'super_admin_dashboard' || activeView.startsWith('super_admin_')) && (
+            <SuperAdminDashboard />
+          )}
+
+          {/* Dept Admin Dashboard Sub-views */}
+          {(activeView === 'dept_admin_dashboard' || activeView.startsWith('dept_admin_')) && (
+            <DeptAdminDashboard />
+          )}
+
+          {/* Student Dashboard */}
+          {activeView === 'student_dashboard' && (
+            <StudentDashboard />
+          )}
+
+          {/* Dashboard View */}
+          {activeView === 'dashboard' && (
+            authUser?.role === 'super_admin' ? <SuperAdminDashboard /> :
+            authUser?.role === 'dept_admin' ? <DeptAdminDashboard /> :
+            authUser?.role === 'student' ? <StudentDashboard /> :
+            <PublicLandingPage />
+          )}
+
+          {/* Home View */}
+          {activeView === 'home' && (
+            authUser?.role === 'super_admin' ? <SuperAdminDashboard /> :
+            authUser?.role === 'dept_admin' ? <DeptAdminDashboard /> :
+            <HomePage />
+          )}
+
+          {/* Grievance Submission Form */}
+          {activeView === 'report' && (
+            <HeroSection />
+          )}
+
+          {/* Personal Submitted Complaints */}
+          {activeView === 'my-complaints' && (
+            <MyComplaintsSection />
+          )}
+
+          {/* Track Complaint Progress */}
+          {activeView === 'track' && (
+            <TrackStatusSection />
+          )}
+
+          {/* Knowledge Base & FAQ */}
+          {activeView === 'faq' && (
+            <HelpFaqSection />
+          )}
+
+        </main>
+
+        {/* Global Modals & System Overlays */}
+        <LoginModal />
+        <ComplaintDetailModal />
+        <ToastContainer />
+        <PushNotificationBanner />
+        <AdvancedAIChatbot />
+
+        {/* Production Footer */}
+        <footer className="w-full bg-slate-900 text-white pt-10 pb-6 border-t border-slate-800 mt-12">
+          <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
+            
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center font-bold">
-                <Megaphone className="w-5 h-5 -rotate-12" />
+              <div className="w-8 h-8 rounded-xl bg-[#8B2414] text-white flex items-center justify-center font-bold text-sm">
+                V
               </div>
-              <span className="text-2xl font-extrabold tracking-tight font-heading">
-                Resolve<span className="text-indigo-400">Hub</span>
+              <span className="text-lg font-extrabold tracking-tight font-heading">
+                Vignan <span className="text-amber-400">ResolveHub</span>
               </span>
             </div>
-            <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-              Complaint Management System — Super Admin, Department Admin & Student multi-role grievance resolution portal with real-time tracking.
-            </p>
-            <div className="text-[11px] text-emerald-400 font-mono flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>ROLE-BASED ACCESS CONTROL (RBAC) OPERATIONAL</span>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 font-sans">
+              <button onClick={() => setActiveView('home')} className="hover:text-white transition-colors cursor-pointer">
+                Portal Home
+              </button>
+              <button onClick={() => setActiveView('report')} className="hover:text-white transition-colors cursor-pointer">
+                Submit Grievance
+              </button>
+              <button onClick={() => setActiveView('track')} className="hover:text-white transition-colors cursor-pointer">
+                Track Status
+              </button>
+              <button onClick={() => setActiveView('faq')} className="hover:text-white transition-colors cursor-pointer">
+                Help & FAQ
+              </button>
+              {!!authUser && (
+                <button onClick={() => setActiveView('profile')} className="hover:text-white text-amber-300 transition-colors cursor-pointer">
+                  My Profile
+                </button>
+              )}
+            </div>
+
+          </div>
+
+          <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-12 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 font-mono">
+            <div>
+              © 2026 Vignan Foundation for Science, Technology & Research (Deemed to be University).
+            </div>
+            <div className="flex items-center gap-2 text-amber-400">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>ENTERPRISE RBAC MANAGEMENT SYSTEM OPERATIONAL</span>
             </div>
           </div>
+        </footer>
 
-          {/* Col 2: Navigation Links */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">Quick Portals</h4>
-            <ul className="space-y-2 text-xs text-slate-400">
-              <li>
-                <button onClick={() => setActiveView('home')} className="hover:text-white transition-colors cursor-pointer">
-                  Home Landing
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setActiveView('report')} className="hover:text-white transition-colors cursor-pointer">
-                  Report an Issue
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setActiveView('dashboard')} className="hover:text-white transition-colors cursor-pointer">
-                  Dashboard
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setActiveView('track')} className="hover:text-white transition-colors cursor-pointer">
-                  Track Complaint Status
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 3: Support */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">Support & Help</h4>
-            <ul className="space-y-2 text-xs text-slate-400">
-              <li>
-                <button onClick={() => setActiveView('faq')} className="hover:text-white transition-colors cursor-pointer">
-                  Knowledge Base & FAQ
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  Sign In / Login Modal
-                </button>
-              </li>
-              <li>
-                <span className="text-slate-400">Helpline: 1-800-RESOLVE</span>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-
-        {/* Footer Bottom Bar */}
-        <div className="max-w-7xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div>
-            © 2026 ResolveHub. Built with React, TypeScript & Tailwind CSS.
-          </div>
-          <div className="flex items-center gap-4 text-slate-400 text-xs">
-            <span>Privacy Policy</span>
-            <span>•</span>
-            <span>Terms of Service</span>
-            <span>•</span>
-            <span>RBAC Security Standard</span>
-          </div>
-        </div>
-      </footer>
+      </div>
 
     </div>
   );
@@ -162,4 +190,3 @@ export default function App() {
     </ResolveHubProvider>
   );
 }
-

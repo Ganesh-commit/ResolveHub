@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Search, GraduationCap } from 'lucide-react';
-import { useResolveHub } from '../context/ResolveHubContext';
+import { ChevronDown, Search, HelpCircle, Bot, Mail } from 'lucide-react';
 
 interface FaqItem {
   id: string;
@@ -20,7 +19,7 @@ const campusFaqData: FaqItem[] = [
     id: 'f2',
     category: 'Anti-Ragging & Safety',
     question: 'Can I report anti-ragging or student welfare issues confidentially?',
-    answer: 'Yes! ResolveHub provides strict confidentiality for student welfare and anti-ragging complaints. Your identity is protected, and reports are routed directly to the Anti-Ragging Committee & Dean of Student Welfare for emergency action.'
+    answer: 'Yes! ResolveHub provides strict confidentiality for student welfare and anti-ragging complaints. Your identity is protected in Anonymous Mode, and reports are routed directly to the Anti-Ragging Committee & Dean of Student Welfare for emergency action.'
   },
   {
     id: 'f3',
@@ -36,15 +35,21 @@ const campusFaqData: FaqItem[] = [
   },
   {
     id: 'f5',
-    category: 'Tracking',
-    question: 'Where is my Reference ID saved when I raise a complaint?',
-    answer: 'Every complaint is assigned a unique Reference ID (e.g. UNI-8942) and stored in your local browser database and campus registry. You can check progress anytime under "MY COMPLAINTS" or "TRACK STATUS".'
+    category: 'SLA Escalation',
+    question: 'What happens if a department does not resolve my complaint in 3 days?',
+    answer: 'Every complaint has an enforced SLA deadline. If unresolved after 3 days, it auto-escalates to the Head of Department (HOD). After 6 days, it escalates directly to the Dean.'
+  },
+  {
+    id: 'f6',
+    category: 'Tracking & Reopening',
+    question: 'Can I re-open a complaint if the problem is not fixed?',
+    answer: 'Yes! If an issue is marked resolved but recurs, navigate to your Track Status page or My Complaints tab and click "Re-open Complaint" to send it back for re-inspection.'
   }
 ];
 
 export const HelpFaqSection: React.FC = () => {
-  const { setActiveView } = useResolveHub();
   const [search, setSearch] = useState('');
+  const [selectedCat, setSelectedCat] = useState('All');
   const [openIds, setOpenIds] = useState<string[]>(['f1', 'f2']);
 
   const toggleAccordion = (id: string) => {
@@ -53,67 +58,90 @@ export const HelpFaqSection: React.FC = () => {
     );
   };
 
-  const filteredFaqs = campusFaqData.filter(item =>
-    item.question.toLowerCase().includes(search.toLowerCase()) ||
-    item.answer.toLowerCase().includes(search.toLowerCase()) ||
-    item.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const categories = ['All', 'Hostel & Facilities', 'Anti-Ragging & Safety', 'Academic & Exams', 'IT & Wi-Fi', 'SLA Escalation', 'Tracking & Reopening'];
+
+  const filteredFaqs = campusFaqData.filter(item => {
+    const matchesCat = selectedCat === 'All' || item.category === selectedCat;
+    const matchesSearch = item.question.toLowerCase().includes(search.toLowerCase()) ||
+                          item.answer.toLowerCase().includes(search.toLowerCase()) ||
+                          item.category.toLowerCase().includes(search.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8 animate-fade-in">
+    <div className="w-full max-w-[1800px] mx-auto space-y-6 py-6 px-4 sm:px-8 lg:px-12 animate-fade-in">
       
-      {/* Header */}
-      <div className="text-center max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 text-[11px] font-extrabold tracking-widest uppercase mb-3">
-          <GraduationCap className="w-4 h-4 text-emerald-700" />
-          <span>STUDENT HELP & SUPPORT CENTER</span>
+      {/* Header Banner */}
+      <div className="bg-[#8a2410] text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-rose-900/40">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-amber-200 text-xs font-bold mb-2">
+            <HelpCircle className="w-3.5 h-3.5" /> University Knowledge Base
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black font-heading-playfair tracking-tight">
+            Help & Frequently Asked Questions
+          </h1>
+          <p className="text-xs text-rose-200/90 mt-1">
+            Find instant guidance on complaint filing, SLA escalation, anonymous reporting, and hostel policies.
+          </p>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-heading">
-          University FAQ & Grievance Guide
-        </h2>
-        <p className="text-slate-600 text-xs sm:text-sm mt-2">
-          Everything you need to know about campus complaint submission and resolution procedures.
-        </p>
       </div>
 
-      {/* Search Input */}
-      <div className="relative max-w-xl mx-auto">
-        <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search questions by keyword (e.g. hostel, anti-ragging, exams)..."
-          className="w-full pl-12 pr-4 py-3.5 text-sm bg-white rounded-2xl border border-stone-200 shadow-xs focus:border-emerald-600 outline-none text-slate-900 placeholder:text-slate-400"
-        />
+      {/* Search & Category Filter Chips */}
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm space-y-4">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search questions by keyword..."
+            className="w-full pl-9 pr-4 py-2.5 text-xs bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 focus:outline-none focus:border-[#8a2410] text-slate-900 dark:text-white font-medium"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto text-xs font-bold pt-1">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCat(cat)}
+              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                selectedCat === cat
+                  ? 'bg-[#8a2410] text-white shadow-xs'
+                  : 'bg-stone-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-stone-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* FAQ Accordion List */}
+      {/* Accordion FAQ Items */}
       <div className="space-y-3">
-        {filteredFaqs.map((faq) => {
+        {filteredFaqs.map(faq => {
           const isOpen = openIds.includes(faq.id);
+
           return (
             <div
               key={faq.id}
-              className="bg-white rounded-2xl border border-stone-200/90 shadow-xs overflow-hidden transition-all"
+              className="bg-white dark:bg-slate-800 rounded-2xl border border-stone-200 dark:border-slate-700 overflow-hidden shadow-xs"
             >
               <button
                 onClick={() => toggleAccordion(faq.id)}
-                className="w-full text-left p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-stone-50/80 transition-colors"
+                className="w-full p-4 sm:p-5 text-left font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center justify-between gap-4 cursor-pointer hover:bg-stone-50 dark:hover:bg-slate-700/50 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-md uppercase">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-50 dark:bg-rose-950 text-[#8a2410] dark:text-amber-300 uppercase">
                     {faq.category}
                   </span>
-                  <span className="text-sm font-bold text-slate-900">
-                    {faq.question}
-                  </span>
+                  <span>{faq.question}</span>
                 </div>
-                <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180 text-emerald-700' : ''}`} />
+
+                <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#8a2410]' : ''}`} />
               </button>
 
               {isOpen && (
-                <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-stone-100 bg-stone-50/40">
+                <div className="px-5 pb-5 pt-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed border-t border-stone-100 dark:border-slate-700/60 font-normal animate-slide-down">
                   {faq.answer}
                 </div>
               )}
@@ -122,22 +150,35 @@ export const HelpFaqSection: React.FC = () => {
         })}
       </div>
 
-      {/* Need Additional Help Contact Banner */}
-      <div className="bg-emerald-900 text-white rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
-        <div>
-          <h3 className="text-lg font-bold">Need urgent campus assistance?</h3>
-          <p className="text-xs text-emerald-200 mt-1">Student welfare desk & anti-ragging cell hotline active 24/7.</p>
-        </div>
-        <div className="flex items-center gap-3">
+      {/* Requirement 9: Bottom CTA Card */}
+      <div className="p-6 sm:p-8 bg-stone-100 dark:bg-slate-800/80 rounded-3xl border border-stone-200 dark:border-slate-700 text-center space-y-4">
+        <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-heading-playfair">
+          Still need help or policy clarification?
+        </h3>
+        <p className="text-xs text-slate-600 dark:text-slate-300 max-w-md mx-auto">
+          Our AI Assistant is available 24/7 to answer policy questions, check your complaint status, or direct you to campus offices.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <button
-            onClick={() => setActiveView('report')}
-            className="bg-white text-emerald-900 text-xs font-extrabold px-6 py-3 rounded-full hover:bg-emerald-50 transition-all btn-lift cursor-pointer"
+            onClick={() => {
+              const aiTrigger = document.querySelector('[aria-label="Open ResolveHub AI Assistant"]') as HTMLButtonElement;
+              if (aiTrigger) aiTrigger.click();
+            }}
+            className="px-6 py-2.5 bg-[#8a2410] hover:bg-[#6f1b0c] text-white font-bold text-xs rounded-full shadow-md cursor-pointer flex items-center gap-2"
           >
-            Submit Campus Grievance
+            <Bot className="w-4 h-4 animate-pulse" /> Ask AI Assistant
           </button>
+
+          <a
+            href="mailto:grievance@vignan.ac.in"
+            className="px-6 py-2.5 bg-white dark:bg-slate-700 border border-stone-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-full hover:bg-stone-50 cursor-pointer flex items-center gap-2"
+          >
+            <Mail className="w-4 h-4 text-[#8a2410]" /> Contact Campus Office
+          </a>
         </div>
       </div>
 
-    </section>
+    </div>
   );
 };

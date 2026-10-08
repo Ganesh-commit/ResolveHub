@@ -10,6 +10,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
+import { CampusImageCarousel } from './CampusImageCarousel';
 
 export const DashboardSection: React.FC = () => {
   const { complaints, setActiveView, setTrackQuery } = useResolveHub();
@@ -22,8 +23,11 @@ export const DashboardSection: React.FC = () => {
   const resolutionRate = total > 0 ? ((resolved / total) * 100).toFixed(1) : '100';
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <section className="py-8 px-4 sm:px-8 lg:px-12 w-full max-w-[1800px] mx-auto space-y-8 animate-fade-in">
       
+      {/* Auto-Moving Campus Images Carousel Banner */}
+      <CampusImageCarousel />
+
       {/* Dashboard Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200/80 pb-6">
         <div>

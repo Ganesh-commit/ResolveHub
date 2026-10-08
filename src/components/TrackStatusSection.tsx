@@ -1,95 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, 
+  Clock, 
   CheckCircle2, 
-  AlertCircle, 
-  MapPin,
-  Loader2
+  User, 
+  Building2, 
+  RotateCcw, 
+  Star, 
+  Calendar,
+  FileText
 } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
-import { ticketApi } from '../services/api';
+import { StatusTimelineStepper } from './StatusTimelineStepper';
 import type { Complaint } from '../types';
 
 export const TrackStatusSection: React.FC = () => {
-  const { complaints, trackQuery, setTrackQuery, authUser } = useResolveHub();
+  const { complaints, trackQuery, setTrackQuery, authUser, updateComplaintStatus, addToast } = useResolveHub();
 
   const userRegNo = authUser?.regNo || (authUser?.role === 'student' ? authUser.username : undefined);
-  const userComplaints = complaints.filter(c => {
-    if (!userRegNo) return false;
+  const myComplaints = complaints.filter(c => {
+    if (!userRegNo) return true;
     const cReg = c.complainant?.regNo || '';
     const cBy = c.submittedBy || '';
     return cReg.toUpperCase() === userRegNo.toUpperCase() || cBy.toUpperCase().includes(userRegNo.toUpperCase());
   });
 
-  const [inputVal, setInputVal] = useState(trackQuery || '');
-  const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [inputVal, setInputVal] = useState(trackQuery || (myComplaints[0]?.id || ''));
+  const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(myComplaints[0] || complaints[0] || null);
 
-  const performSearch = async (searchId: string) => {
-    const query = searchId.trim().toUpperCase();
-    if (!query) return;
+  // Rating & Feedback State
+  const [rating, setRating] = useState(5);
+  const [feedback, setFeedback] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
-    // 1. Check local complaints first
-    const foundLocal = complaints.find(c => c.id.toUpperCase() === query);
-    if (foundLocal) {
-      setActiveComplaint(foundLocal);
-      return;
-    }
-
-    // 2. Fetch live data from backend API
-    setLoading(true);
-    try {
-      const data: any = await ticketApi.track(query);
-      if (data && data.id) {
-        const mapped: Complaint = {
-          id: data.id,
-          title: data.title || 'Campus Grievance',
-          category: data.category || 'General',
-          department: data.department || 'Campus Administration',
-          status: data.status || 'new',
-          priority: data.urgency === 'critical' ? 'Urgent' : 'Medium',
-          urgency: data.urgency || 'medium',
-          submittedAt: data.createdAt || 'Recent',
-          updatedAt: data.updatedAt || 'Recent',
-          submittedBy: data.complainant ? `Reg No: ${data.complainant.regNo}` : 'Student',
-          complainant: data.complainant || { regNo: 'Student', name: 'Student', email: '', role: 'Student', department: '' },
-          assignedOfficer: data.assignedAgent?.name || 'Assigned Officer',
-          location: data.location || 'Main Campus',
-          description: data.description || 'Campus student grievance details.',
-          responseRemarks: data.responseRemarks || '',
-          timeline: data.timeline || [
-            { title: 'Grievance Submitted', status: 'Submitted', date: data.createdAt || 'Logged', description: 'Complaint registered in database.', completed: true },
-            { title: 'Department Review & Triage', status: 'Under Review', date: 'Triage', description: `Assigned to ${data.department || 'Department'}.`, completed: ['investigating', 'dispatched', 'resolved'].includes((data.status || '').toLowerCase()) },
-            { title: 'Action & Field Dispatch', status: 'In Progress', date: 'In Progress', description: 'Technician dispatched for field resolution.', completed: ['dispatched', 'resolved'].includes((data.status || '').toLowerCase()) },
-            { title: 'Resolution & Signoff', status: 'Resolved', date: 'Signoff', description: 'Final verification.', completed: (data.status || '').toLowerCase() === 'resolved' }
-          ],
-          auditLogs: data.auditLogs || []
-        };
-        setActiveComplaint(mapped);
-      } else {
-        setActiveComplaint(null);
-      }
-    } catch (err) {
-      setActiveComplaint(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Reopen State
+  const [reopenReason, setReopenReason] = useState('');
+  const [reopenModalOpen, setReopenModalOpen] = useState(false);
 
   useEffect(() => {
     if (trackQuery) {
       setInputVal(trackQuery);
-      if (!activeComplaint || activeComplaint.id.toUpperCase() !== trackQuery.trim().toUpperCase()) {
-        performSearch(trackQuery);
-      }
-    } else if (userComplaints.length > 0) {
-      if (!activeComplaint) {
-        setInputVal(userComplaints[0].id);
-        setActiveComplaint(userComplaints[0]);
-      }
-    } else if (complaints.length > 0 && !activeComplaint) {
-      setInputVal(complaints[0].id);
-      setActiveComplaint(complaints[0]);
+      const found = complaints.find(c => c.id.toUpperCase() === trackQuery.toUpperCase());
+      if (found) setActiveComplaint(found);
     }
   }, [trackQuery, complaints]);
 
@@ -97,180 +49,290 @@ export const TrackStatusSection: React.FC = () => {
     e.preventDefault();
     const query = inputVal.trim().toUpperCase();
     if (!query) return;
-    setTrackQuery(query);
-    performSearch(query);
+
+    const found = complaints.find(c => c.id.toUpperCase() === query || c.id.toUpperCase() === `#${query}`);
+    if (found) {
+      setActiveComplaint(found);
+      setTrackQuery(found.id);
+    } else {
+      addToast('warning', 'Ticket Not Found', `No complaint found matching ID "${inputVal}".`);
+    }
   };
 
-  const sampleIds = userComplaints.length > 0 ? userComplaints.map(c => c.id) : ['RP-8042', 'RP-8039', 'RP-7994'];
+  const handleRatingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedbackSubmitted(true);
+    addToast('success', 'Feedback Submitted', 'Thank you for rating our resolution service!');
+  };
+
+  const handleReopenComplaint = async () => {
+    if (!activeComplaint || !reopenReason.trim()) return;
+    await updateComplaintStatus(activeComplaint.id, 'In Progress', `Reopened by student: ${reopenReason}`);
+    setReopenModalOpen(false);
+    setReopenReason('');
+    addToast('info', 'Complaint Re-opened', `Ticket ${activeComplaint.id} has been re-opened for department re-inspection.`);
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
+    <div className="w-full max-w-[1800px] mx-auto space-y-6 py-6 px-4 sm:px-8 lg:px-12 animate-fade-in">
       
-      {/* Header */}
-      <div className="text-center max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 text-[11px] font-extrabold tracking-widest uppercase mb-3">
-          <Search className="w-3.5 h-3.5 text-emerald-700" />
-          <span>TRANSPARENT STATUS TRACKER</span>
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-heading">
-          Track Complaint Progress
-        </h2>
-        <p className="text-slate-600 text-xs sm:text-sm mt-2">
-          Enter your reference ID to view real-time status updates and department field logs.
-        </p>
-      </div>
-
-      {/* Complaint Search Box */}
-      <div className="bg-white rounded-3xl p-6 border border-stone-200/90 shadow-lg max-w-2xl mx-auto">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="relative flex-1 w-full">
-            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              placeholder="Enter Complaint Reference ID (e.g. RH-8942)"
-              className="w-full pl-12 pr-4 py-3 text-sm bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none font-mono font-bold text-slate-900"
-            />
+      {/* Header Banner */}
+      <div className="bg-[#8a2410] text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-rose-900/40">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-amber-200 text-xs font-bold mb-2">
+            <Search className="w-3.5 h-3.5" /> Real-Time SLA Monitor
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full sm:w-auto bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white font-bold text-xs px-7 py-3.5 rounded-2xl shadow-md btn-lift cursor-pointer flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>FETCHING...</span>
-              </>
-            ) : (
-              <span>TRACK STATUS</span>
-            )}
-          </button>
-        </form>
-
-        {/* Quick Suggestion Pills */}
-        <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-stone-100">
-          <span className="text-[11px] font-bold text-slate-400">
-            {userComplaints.length > 0 ? 'Your Submitted Complaints:' : 'Sample Reference IDs:'}
-          </span>
-          {sampleIds.map(id => (
-            <button
-              key={id}
-              onClick={() => {
-                setInputVal(id);
-                setTrackQuery(id);
-                performSearch(id);
-              }}
-              className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-900 transition-colors cursor-pointer"
-            >
-              {id}
-            </button>
-          ))}
+          <h1 className="text-2xl sm:text-3xl font-black font-heading-playfair tracking-tight">
+            Track Grievance Status
+          </h1>
+          <p className="text-xs text-rose-200/90 mt-1">
+            View live status stepper, SLA deadline timers, assigned officer notes, and field action remarks.
+          </p>
         </div>
+
+        {/* Quick Select Dropdown */}
+        {myComplaints.length > 0 && (
+          <select
+            value={activeComplaint?.id || ''}
+            onChange={(e) => {
+              const selected = complaints.find(c => c.id === e.target.value);
+              if (selected) {
+                setActiveComplaint(selected);
+                setTrackQuery(selected.id);
+                setInputVal(selected.id);
+              }
+            }}
+            className="px-4 py-2.5 bg-white/15 backdrop-blur-md text-white font-bold text-xs rounded-xl border border-white/30 outline-none cursor-pointer"
+          >
+            {myComplaints.map(c => (
+              <option key={c.id} value={c.id} className="text-slate-900">
+                {c.id} - {c.title.length > 30 ? `${c.title.slice(0, 27)}...` : c.title}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {/* Complaint Details Card & 4-Step Progress Bar */}
+      {/* Ticket ID Search Bar */}
+      <form onSubmit={handleSearch} className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            placeholder="Enter Complaint ID (e.g., #RH-1002)"
+            className="w-full pl-9 pr-4 py-2.5 text-xs font-mono bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 focus:outline-none focus:border-[#8a2410] dark:text-white"
+          />
+        </div>
+        <button
+          type="submit"
+          className="px-6 py-2.5 bg-[#8a2410] hover:bg-[#6f1b0c] text-white font-bold text-xs rounded-xl cursor-pointer shadow-xs"
+        >
+          Track Ticket
+        </button>
+      </form>
+
+      {/* Active Complaint Detailed View */}
       {activeComplaint ? (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/90 shadow-md space-y-8 animate-slide-up">
+        <div className="space-y-6">
           
-          {/* Top Info Banner */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-stone-50 border border-stone-200/80">
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-sm font-extrabold text-white bg-emerald-800 px-3 py-1 rounded-xl">
-                  {activeComplaint.id}
+          {/* Main Ticket Summary Card */}
+          <div className="p-6 sm:p-8 bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm space-y-6">
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-100 dark:border-slate-700 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-lg font-black text-[#8a2410] dark:text-amber-400">{activeComplaint.id}</span>
+                  <span className="text-xs font-bold text-slate-500">• {activeComplaint.category}</span>
+                </div>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
+                  {activeComplaint.title}
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* SLA Timer Badge */}
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-amber-700" /> SLA: 3 Business Days
                 </span>
-                <span className="text-xs font-bold text-slate-500 uppercase">
-                  {activeComplaint.category}
+
+                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                  activeComplaint.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                  activeComplaint.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                  'bg-amber-100 text-amber-800'
+                }`}>
+                  {activeComplaint.status}
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mt-2">
-                {activeComplaint.title}
-              </h3>
-              <p className="text-xs text-slate-600 mt-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                {activeComplaint.location}
-              </p>
             </div>
 
-            <div className="flex flex-col items-start md:items-end text-xs text-slate-500 space-y-1">
-              <div>Assigned Dept: <span className="font-bold text-slate-800">{activeComplaint.department}</span></div>
-              <div>Field Officer: <span className="font-bold text-slate-800">{activeComplaint.assignedOfficer}</span></div>
-              <div>Submitted: <span className="font-mono text-slate-700">{activeComplaint.submittedAt}</span></div>
+            {/* Stepper Timeline (StatusTimelineStepper) */}
+            <div className="py-4">
+              <StatusTimelineStepper ticket={activeComplaint} />
             </div>
-          </div>
 
-          {/* 4-Step Visual Progress Bar Component */}
-          <div>
-            <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-6">
-              Resolution Progress Workflow
-            </h4>
+            {/* Assigned Officer & Department Info Card */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-stone-100 dark:border-slate-700 text-xs">
+              
+              <div className="p-4 bg-stone-50 dark:bg-slate-900 rounded-2xl border border-stone-200 dark:border-slate-700 flex items-center gap-3">
+                <Building2 className="w-5 h-5 text-[#8a2410] shrink-0" />
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Responsible Department</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{activeComplaint.department}</span>
+                </div>
+              </div>
 
-            {/* Horizontal Timeline Bar on Desktop */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 relative">
-              {(activeComplaint.timeline && activeComplaint.timeline.length > 0 ? activeComplaint.timeline : [
-                { title: 'Grievance Submitted', status: 'Submitted', date: activeComplaint.submittedAt || 'Recent', description: 'Complaint registered in portal.', completed: true },
-                { title: 'Department Review & Triage', status: 'Under Review', date: 'Triage', description: `Assigned to ${activeComplaint.department || 'Department'}.`, completed: ['investigating', 'dispatched', 'resolved'].includes((activeComplaint.status || '').toLowerCase()) },
-                { title: 'Action & Field Dispatch', status: 'In Progress', date: 'In Progress', description: 'Technician dispatched for field resolution.', completed: ['dispatched', 'resolved'].includes((activeComplaint.status || '').toLowerCase()) },
-                { title: 'Resolution & Signoff', status: 'Resolved', date: 'Target Signoff', description: 'Final verification.', completed: (activeComplaint.status || '').toLowerCase() === 'resolved' }
-              ]).map((step, idx) => {
-                const isCurrent = activeComplaint.status === step.status;
-                return (
-                  <div
-                    key={idx}
-                    className={`relative p-4 rounded-2xl border transition-all ${
-                      step.completed
-                        ? 'bg-emerald-50/80 border-emerald-300'
-                        : isCurrent
-                        ? 'bg-sky-50/80 border-sky-300 ring-2 ring-sky-500/20'
-                        : 'bg-stone-50 border-stone-200 opacity-60'
-                    }`}
+              <div className="p-4 bg-stone-50 dark:bg-slate-900 rounded-2xl border border-stone-200 dark:border-slate-700 flex items-center gap-3">
+                <User className="w-5 h-5 text-blue-600 shrink-0" />
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Assigned Officer / Technician</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {activeComplaint.assignedOfficer || activeComplaint.assignedAgent?.name || 'Department Desk Officer'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-stone-50 dark:bg-slate-900 rounded-2xl border border-stone-200 dark:border-slate-700 flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Submission Date</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatDate(activeComplaint.submittedAt)}</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Description & Remarks */}
+            <div className="space-y-4 pt-2 text-xs">
+              <div className="p-4 bg-stone-50 dark:bg-slate-900 rounded-2xl border border-stone-200 dark:border-slate-700 space-y-1">
+                <span className="font-bold text-slate-900 dark:text-white block">Detailed Description:</span>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-normal">{activeComplaint.description}</p>
+              </div>
+
+              {activeComplaint.responseRemarks && (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800 space-y-1">
+                  <span className="font-bold text-emerald-900 dark:text-emerald-200 block flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Official Inspection Remarks:
+                  </span>
+                  <p className="text-emerald-800 dark:text-emerald-300 leading-relaxed font-normal">{activeComplaint.responseRemarks}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Rating & Feedback / Reopen Section if Resolved */}
+            {activeComplaint.status === 'Resolved' && (
+              <div className="p-6 bg-stone-50 dark:bg-slate-900 rounded-3xl border border-stone-200 dark:border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-200 dark:border-slate-700 pb-3">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-heading-playfair">
+                      Resolution Feedback & Quality Check
+                    </h4>
+                    <p className="text-xs text-slate-500">Rate the service quality or reopen the ticket if unsatisfied.</p>
+                  </div>
+
+                  <button
+                    onClick={() => setReopenModalOpen(true)}
+                    className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-[#8a2410] dark:text-amber-300 border border-rose-200 dark:border-rose-800 font-bold text-xs rounded-xl hover:bg-[#8a2410] hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                        step.completed
-                          ? 'bg-emerald-700 text-white'
-                          : 'bg-stone-200 text-slate-600'
-                      }`}>
-                        {step.completed ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500">{step.date}</span>
+                    <RotateCcw className="w-4 h-4" /> Re-open Complaint
+                  </button>
+                </div>
+
+                {!feedbackSubmitted ? (
+                  <form onSubmit={handleRatingSubmit} className="space-y-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Rate Resolution:</span>
+                      <div className="flex items-center gap-1 text-amber-400">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star
+                            key={star}
+                            onClick={() => setRating(star)}
+                            className={`w-5 h-5 cursor-pointer ${star <= rating ? 'fill-amber-400' : 'text-slate-300'}`}
+                          />
+                        ))}
+                      </div>
                     </div>
 
-                    <h5 className="text-xs font-bold text-slate-900">{step.title}</h5>
-                    <p className="text-[11px] text-slate-600 mt-1 line-clamp-3 leading-tight">{step.description}</p>
+                    <textarea
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="Leave feedback on technician work..."
+                      rows={2}
+                      className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl border border-stone-200 dark:border-slate-700 outline-none text-slate-900 dark:text-white"
+                    />
 
-                    {step.assignedOfficer && (
-                      <span className="inline-block mt-2 text-[10px] font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-stone-200">
-                        Officer: {step.assignedOfficer}
-                      </span>
-                    )}
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-[#8a2410] text-white font-bold rounded-xl cursor-pointer"
+                    >
+                      Submit Rating
+                    </button>
+                  </form>
+                ) : (
+                  <div className="p-3 bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs">
+                    ✓ Feedback recorded! Thank you for rating our resolution service.
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                )}
+              </div>
+            )}
 
-          {/* Detailed Complaint Logs */}
-          <div className="border-t border-stone-100 pt-6">
-            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-3">
-              Full Description & Attachments
-            </h4>
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-stone-50 p-4 rounded-2xl border border-stone-200/60">
-              {activeComplaint.description}
-            </p>
           </div>
 
         </div>
       ) : (
-        <div className="bg-white rounded-3xl p-12 text-center border border-stone-200/90 text-slate-500">
-          <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h4 className="text-base font-bold text-slate-700">Complaint Not Found</h4>
-          <p className="text-xs text-slate-500 mt-1">Please double check reference ID format (e.g. RH-8942).</p>
+        <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 space-y-3">
+          <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">No Complaint Selected</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Enter a valid ticket ID above or select a complaint from your dashboard registry.
+          </p>
         </div>
       )}
 
-    </section>
+      {/* Re-open Complaint Modal */}
+      {reopenModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-stone-200 dark:border-slate-700">
+            <h3 className="text-lg font-black font-heading-playfair text-[#8a2410]">
+              Re-open Complaint {activeComplaint?.id}
+            </h3>
+            <p className="text-xs text-slate-500">
+              Please state why the resolution was unsatisfactory so the department can re-inspect.
+            </p>
+
+            <textarea
+              value={reopenReason}
+              onChange={(e) => setReopenReason(e.target.value)}
+              placeholder="Explain what problem persists..."
+              rows={3}
+              className="w-full p-3 text-xs bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 outline-none"
+            />
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setReopenModalOpen(false)}
+                className="px-4 py-2 bg-stone-100 dark:bg-slate-700 font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReopenComplaint}
+                className="px-5 py-2 bg-[#8a2410] text-white font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Confirm Re-open
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 };

@@ -79,7 +79,7 @@ export const KnowledgeBase: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto w-full">
+    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-8 lg:px-12 max-w-[1800px] mx-auto w-full">
       {/* Hero Banner */}
       <div className="text-center max-w-2xl mx-auto mb-12">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 mb-3">

@@ -3,15 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #15803d;
-  --color-primary-dark: #14532d;
-  --color-accent: #6366f1;
-  --color-bg: #faf8f5;
-  --color-text: #0f172a;
+  --color-maroon: #8a2410;
+  --color-dark-maroon: #4a1208;
+  --color-gold: #ffc20e;
+  --color-navy: #0b3a6b;
+  --color-warm-bg: #faf7f4;
+  --vignan-maroon: #8a2410;
+  --vignan-dark: #4a1208;
 }
 
-* {
+.font-heading-playfair {
+  font-family: 'Playfair Display', Georgia, Cambria, serif;
+  letter-spacing: -0.025em;
+}
+
+.font-body-jakarta {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
 }
 
 html {
@@ -19,10 +37,8 @@ html {
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #faf8f5;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #faf7f4;
   color: #0f172a;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -48,72 +64,188 @@ body {
   background: #94a3b8;
 }
 
-/* Glassmorphism card styling */
-.glass-card-hero {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 20px 40px -15px rgba(22, 101, 52, 0.08), 0 0 20px rgba(0, 0, 0, 0.03);
+/* ── 1. Hero Glow Blobs Floating Loop ─────────────────────────────────────── */
+@keyframes blob-drift-gold {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(35px, -45px) scale(1.12); }
+  66% { transform: translate(-25px, 25px) scale(0.92); }
 }
 
-.glass-card-hero:hover {
-  box-shadow: 0 25px 50px -12px rgba(22, 101, 52, 0.14), 0 0 25px rgba(0, 0, 0, 0.04);
+@keyframes blob-drift-blue {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(-45px, 35px) scale(1.08); }
+  66% { transform: translate(30px, -40px) scale(0.94); }
 }
 
-/* Button lift effect */
-.btn-lift {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.animate-blob-gold {
+  animation: blob-drift-gold 14s ease-in-out infinite;
 }
 
-.btn-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(21, 128, 61, 0.35);
+.animate-blob-blue {
+  animation: blob-drift-blue 18s ease-in-out infinite;
 }
 
-.btn-lift:active {
-  transform: translateY(0);
+/* ── 2. Word Mask Slide Up Animation ─────────────────────────────────────── */
+.word-mask {
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: bottom;
 }
 
-/* Nav Link Hover Underline */
-.nav-link-hover {
+@keyframes word-slide-up {
+  0% { transform: translateY(115%); opacity: 0; }
+  100% { transform: translateY(0%); opacity: 1; }
+}
+
+.animate-word-1 { animation: word-slide-up 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; }
+.animate-word-2 { animation: word-slide-up 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards; opacity: 0; }
+.animate-word-3 { animation: word-slide-up 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; opacity: 0; }
+.animate-word-4 { animation: word-slide-up 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.55s forwards; opacity: 0; }
+
+/* ── 3. Supporting Lines Fade In ─────────────────────────────────────────── */
+@keyframes line-fade-in {
+  0% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-line-1 { animation: line-fade-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards; opacity: 0; }
+.animate-fade-line-2 { animation: line-fade-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.85s forwards; opacity: 0; }
+.animate-fade-line-3 { animation: line-fade-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards; opacity: 0; }
+
+/* ── 4. Gold Button Continuous Shine Sweep ────────────────────────────────── */
+@keyframes gold-shine-sweep {
+  0% { transform: translateX(-130%) skewX(-20deg); }
+  35%, 100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+.shine-sweep-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-sweep-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-130%) skewX(-20deg);
+  animation: gold-shine-sweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ── 5. Demo Tracker Card & Floating Chips Loops ──────────────────────────── */
+@keyframes card-float-gentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+.animate-card-float {
+  animation: card-float-gentle 5s ease-in-out infinite;
+}
+
+@keyframes chip-float-delay-1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-6px, -10px); }
+}
+
+@keyframes chip-float-delay-2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(8px, -8px); }
+}
+
+@keyframes chip-float-delay-3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-5px, 8px); }
+}
+
+.animate-chip-1 { animation: chip-float-delay-1 4.2s ease-in-out infinite; }
+.animate-chip-2 { animation: chip-float-delay-2 5.5s ease-in-out 0.8s infinite; }
+.animate-chip-3 { animation: chip-float-delay-3 4.8s ease-in-out 1.5s infinite; }
+
+/* ── 6. Continuous Seamless Category Marquee ──────────────────────────────── */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-continuous {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 32s linear infinite;
+}
+
+.animate-marquee-continuous:hover {
+  animation-play-state: paused;
+}
+
+/* ── 7. Demo Progress Bar Animation ───────────────────────────────────────── */
+@keyframes demo-progress-fill {
+  0% { width: 10%; }
+  35% { width: 45%; }
+  70% { width: 75%; }
+  90%, 100% { width: 100%; }
+}
+
+.animate-demo-progress {
+  animation: demo-progress-fill 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ── 8. Nav Link Sliding Underline ────────────────────────────────────────── */
+.landing-nav-link {
   position: relative;
 }
 
-.nav-link-hover::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background-color: #15803d;
-  transition: all 0.25s ease;
-  transform: translateX(-50%);
-  border-radius: 2px;
-}
-
-.nav-link-hover:hover::after {
-  width: 100%;
-}
-
-.nav-link-active::after {
+.landing-nav-link::after {
   content: '';
   position: absolute;
   bottom: -4px;
   left: 0;
-  width: 100%;
-  height: 2.5px;
-  background-color: #15803d;
+  width: 0%;
+  height: 2px;
+  background-color: #ffc20e;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   border-radius: 2px;
 }
 
-/* Soft pulse animation for badges */
-@keyframes subtle-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.85; }
+.landing-nav-link:hover::after {
+  width: 100%;
 }
 
-.pulse-badge {
-  animation: subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Footer Link Rightward Nudge */
+.footer-link-nudge {
+  transition: transform 0.2s ease, color 0.2s ease;
 }
+
+.footer-link-nudge:hover {
+  transform: translateX(6px);
+  color: #ffc20e;
+}
+
+/* Shake animation for invalid credentials / form errors */
+@keyframes shake-anim {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake-anim 0.4s ease-in-out;
+}
+
+/* ── 9. Prefers-Reduced-Motion Guard ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

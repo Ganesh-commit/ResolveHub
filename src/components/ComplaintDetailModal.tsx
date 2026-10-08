@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, MapPin, Paperclip, Send } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
+import { StatusTimelineStepper } from './StatusTimelineStepper';
 
 export const ComplaintDetailModal: React.FC = () => {
   const { selectedComplaint, setSelectedComplaint, addToast } = useResolveHub();
@@ -24,7 +25,7 @@ export const ComplaintDetailModal: React.FC = () => {
       ...prev,
       {
         id: Math.random().toString(36).substring(2, 8),
-        author: 'You (Citizen)',
+        author: 'You (Student)',
         text: commentText,
         date: 'Just now'
       }
@@ -54,7 +55,7 @@ export const ComplaintDetailModal: React.FC = () => {
         {/* Modal Header */}
         <div className="border-b border-stone-200/80 pb-5 mb-5">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs font-extrabold text-white bg-emerald-800 px-3 py-1 rounded-xl">
+            <span className="font-mono text-xs font-extrabold text-white bg-[#8B2414] px-3 py-1 rounded-xl">
               {selectedComplaint.id}
             </span>
             <span className="text-xs font-bold text-slate-500 uppercase">
@@ -72,6 +73,15 @@ export const ComplaintDetailModal: React.FC = () => {
 
         {/* Complaint Full Body */}
         <div className="space-y-6">
+
+          {/* SLA Status Timeline Stepper */}
+          <StatusTimelineStepper
+            currentStatus={selectedComplaint.status}
+            timeline={selectedComplaint.timeline}
+            escalationLevel={selectedComplaint.escalationLevel}
+            escalationReason={selectedComplaint.escalationReason}
+            slaDeadline={selectedComplaint.slaDeadline}
+          />
           
           <div>
             <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">

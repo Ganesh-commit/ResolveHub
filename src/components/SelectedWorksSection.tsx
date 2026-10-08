@@ -36,7 +36,7 @@ export const SelectedWorksSection: React.FC = () => {
       sla: 'SLA: 2.0 Hours',
       status: 'Resolved & Tested',
       category: 'Sanitation',
-      gradient: 'from-emerald-950/40 via-slate-900 to-black',
+      gradient: 'from-rose-950/40 via-slate-900 to-black',
       image: 'https://images.unsplash.com/photo-1584772658145-12cf518c8651?auto=format&fit=crop&w=800&q=80'
     },
     {

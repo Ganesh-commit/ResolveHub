@@ -1,26 +1,36 @@
 import React, { useState } from 'react';
 import { 
   Search, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
   FileText, 
   MapPin, 
   Paperclip,
-  ChevronRight,
-  Plus,
-  Trash2,
-  GraduationCap
+  PlusCircle,
+  Eye,
+  Calendar,
+  ArrowUpDown
 } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
 
 export const MyComplaintsSection: React.FC = () => {
-  const { complaints, setSelectedComplaint, setActiveView, setTrackQuery, clearDatabase } = useResolveHub();
+  const { complaints, authUser, setActiveView, setTrackQuery } = useResolveHub();
+
+  const regNo = authUser?.regNo || authUser?.username || '';
+
+  // Filter complaints strictly belonging to this logged-in student
+  const studentComplaints = complaints.filter(c => {
+    if (!regNo) return true;
+    const cReg = c.complainant?.regNo || '';
+    const cBy = c.submittedBy || '';
+    return cReg.toUpperCase() === regNo.toUpperCase() || cBy.toUpperCase().includes(regNo.toUpperCase());
+  });
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  const filteredComplaints = complaints.filter(c => {
+  const filteredComplaints = studentComplaints.filter(c => {
     const matchesSearch = 
       c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -28,234 +38,236 @@ export const MyComplaintsSection: React.FC = () => {
       c.description.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = 
-      selectedStatusFilter === 'All' || 
-      (selectedStatusFilter === 'Pending' && (c.status === 'Submitted' || c.status === 'Under Review')) ||
-      (selectedStatusFilter === 'In Progress' && c.status === 'In Progress') ||
-      (selectedStatusFilter === 'Resolved' && c.status === 'Resolved');
+      statusFilter === 'All' || 
+      (statusFilter === 'Pending' && (c.status === 'Submitted' || c.status === 'Under Review' || c.status === 'new')) ||
+      (statusFilter === 'In Progress' && (c.status === 'In Progress' || c.status === 'investigating' || c.status === 'Assigned')) ||
+      (statusFilter === 'Resolved' && c.status === 'Resolved') ||
+      (statusFilter === 'Escalated' && (c.isEscalated || c.status === 'Escalated'));
 
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
-    const s = status.toLowerCase();
-    if (s === 'submitted' || s === 'new') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">
-          <Clock className="w-3.5 h-3.5 text-amber-700" />
-          <span>Submitted</span>
-        </span>
-      );
-    }
-    if (s === 'under review' || s === 'investigating') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-900 border border-sky-200">
-          <AlertCircle className="w-3.5 h-3.5 text-sky-700" />
-          <span>Under Review</span>
-        </span>
-      );
-    }
-    if (s === 'in progress' || s === 'dispatched') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
-          <Clock className="w-3.5 h-3.5 text-indigo-700 animate-spin" style={{ animationDuration: '4s' }} />
-          <span>In Progress</span>
-        </span>
-      );
-    }
-    if (s === 'resolved') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-          <span>Resolved</span>
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900 border border-rose-200">
-        <span>{status}</span>
-      </span>
-    );
-  };
+  // Sort complaints
+  filteredComplaints.sort((a, b) => {
+    const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+    const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+    return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+  });
 
-  const getPriorityBadge = (priority?: string) => {
-    const p = (priority || 'Medium').toLowerCase();
-    if (p === 'urgent' || p === 'critical') {
-      return <span className="text-[10px] font-extrabold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 uppercase">Urgent</span>;
-    }
-    if (p === 'high') {
-      return <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 uppercase">High</span>;
-    }
-    return <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 uppercase">{priority || 'Medium'}</span>;
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredComplaints.length / itemsPerPage) || 1;
+  const paginatedComplaints = filteredComplaints.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="w-full max-w-[1800px] mx-auto space-y-6 py-6 px-4 sm:px-8 lg:px-12 animate-fade-in">
       
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200/80 pb-6">
+      {/* Header Banner */}
+      <div className="bg-[#8a2410] text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-rose-900/40">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-900 text-[11px] font-extrabold uppercase tracking-wider mb-2">
-            <GraduationCap className="w-3.5 h-3.5 text-emerald-700" />
-            <span>CAMPUS DATABASE REGISTRY</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-amber-200 text-xs font-bold mb-2">
+            <FileText className="w-3.5 h-3.5" /> My Submitted Registry
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight font-heading">
-            My Submitted Campus Complaints
-          </h2>
-          <p className="text-slate-600 text-xs sm:text-sm mt-1">
-            Complaints raised by you stored in the campus database ({complaints.length} records saved).
+          <h1 className="text-2xl sm:text-3xl font-black font-heading-playfair tracking-tight">
+            My Complaints Registry
+          </h1>
+          <p className="text-xs text-rose-200/90 mt-1">
+            Track, filter, and inspect status timelines for all your submitted grievance tickets.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {complaints.length > 0 && (
-            <button
-              onClick={clearDatabase}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3.5 py-2.5 rounded-full border border-rose-200 cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear Database</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => setActiveView('report')}
-            className="inline-flex items-center justify-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs px-5 py-3 rounded-full shadow-md btn-lift cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>REPORT NEW ISSUE</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setActiveView('report')}
+          className="px-6 py-3 bg-[#ffc20e] hover:bg-[#e0a800] text-[#4a1208] font-black text-xs uppercase tracking-wider rounded-full shadow-lg cursor-pointer flex items-center gap-2 shrink-0"
+        >
+          <PlusCircle className="w-4 h-4" /> Report New Issue
+        </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        
-        {/* Search input */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by Reference ID (e.g. UNI-8942), topic, or location..."
-            className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white focus:border-emerald-600 outline-none text-slate-900 placeholder:text-slate-400"
-          />
+      {/* Search & Filter Bar */}
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          
+          {/* Search Input */}
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by ID, title, category..."
+              className="w-full pl-9 pr-4 py-2.5 text-xs bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 focus:outline-none focus:border-[#8a2410] dark:text-white"
+            />
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <ArrowUpDown className="w-4 h-4 text-slate-400" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-2 text-xs bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold outline-none"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          {['All', 'Pending', 'In Progress', 'Resolved'].map((statusTab) => (
+        {/* Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto text-xs font-bold pt-1">
+          {['All', 'Pending', 'In Progress', 'Resolved', 'Escalated'].map(chip => (
             <button
-              key={statusTab}
-              onClick={() => setSelectedStatusFilter(statusTab)}
-              className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
-                selectedStatusFilter === statusTab
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-stone-100 text-slate-600 hover:bg-stone-200'
+              key={chip}
+              onClick={() => {
+                setStatusFilter(chip);
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                statusFilter === chip
+                  ? 'bg-[#8a2410] text-white shadow-xs'
+                  : 'bg-stone-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-stone-200'
               }`}
             >
-              {statusTab}
+              {chip}
             </button>
           ))}
         </div>
-
       </div>
 
-      {/* Complaints List Table / Cards */}
+      {/* Complaint Registry Cards List */}
       <div className="space-y-4">
-        {filteredComplaints.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-stone-200/90 text-slate-500 shadow-xs">
-            <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h4 className="text-base font-bold text-slate-800">
-              {complaints.length === 0 ? 'No Campus Complaints Logged in Database' : 'No matching complaints found'}
-            </h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              {complaints.length === 0
-                ? 'Only complaints submitted by you will be stored in the database. Raise a new complaint using the button below!'
-                : 'Try adjusting your search query or filter options.'}
+        {paginatedComplaints.length === 0 ? (
+          <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 space-y-3">
+            <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+            <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">No Complaints Match Filter</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Try adjusting your search query or filter chips to view submitted tickets.
             </p>
-
-            {complaints.length === 0 && (
-              <button
-                onClick={() => setActiveView('report')}
-                className="mt-5 inline-flex items-center gap-2 bg-emerald-800 text-white text-xs font-bold px-6 py-3 rounded-full hover:bg-emerald-900 shadow-md cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Raise Your First Campus Complaint</span>
-              </button>
-            )}
           </div>
         ) : (
-          filteredComplaints.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-3xl p-6 border border-stone-200/90 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-6"
-            >
-              
-              {/* Left Details */}
-              <div className="flex-1 space-y-2.5">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-mono text-xs font-extrabold text-emerald-900 bg-emerald-100/90 px-2.5 py-1 rounded-lg">
-                    {item.id}
-                  </span>
-                  {getStatusBadge(item.status)}
-                  {getPriorityBadge(item.priority)}
-                  <span className="text-xs text-slate-400 font-medium">
-                    Logged: {item.submittedAt}
-                  </span>
-                </div>
+          paginatedComplaints.map(c => {
+            let progressPct = 25;
+            if (c.status === 'Assigned') progressPct = 50;
+            else if (c.status === 'In Progress' || c.status === 'investigating') progressPct = 75;
+            else if (c.status === 'Resolved') progressPct = 100;
 
-                <h3 className="text-base font-bold text-slate-900">
-                  {item.title}
-                </h3>
+            return (
+              <div
+                key={c.id}
+                className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm hover:border-[#8a2410] transition-all space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-stone-100 dark:border-slate-700 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm font-black text-[#8a2410] dark:text-amber-400">{c.id}</span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">• {c.category}</span>
+                    {c.isAnonymous && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-100 text-rose-800 uppercase">
+                        Anonymous Mode
+                      </span>
+                    )}
+                  </div>
 
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {item.description}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
-                  <span className="font-semibold text-slate-700 bg-stone-100 px-2.5 py-0.5 rounded-md">
-                    Dept: {item.department || item.category}
-                  </span>
-                  <span className="flex items-center gap-1 text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    {item.location}
-                  </span>
-                  {item.attachments && item.attachments.length > 0 && (
-                    <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                      <Paperclip className="w-3.5 h-3.5" />
-                      {item.attachments.length} attached
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                      c.priority === 'Urgent' || c.priority === 'High' ? 'bg-rose-100 text-rose-800' : 'bg-stone-100 text-slate-700'
+                    }`}>
+                      {c.urgency || c.priority || 'Medium'}
                     </span>
-                  )}
+                    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                      c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                      c.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                      'bg-amber-100 text-amber-800'
+                    }`}>
+                      {c.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    {c.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                    {c.description}
+                  </p>
+                </div>
+
+                {/* Progress Bar per complaint */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                    <span>Resolution Progress</span>
+                    <span>{progressPct}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-stone-100 dark:bg-slate-700 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#8a2410] to-[#ffc20e] rounded-full"
+                      style={{ width: `${progressPct}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Footer Details */}
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-2 border-t border-stone-100 dark:border-slate-700 gap-2">
+                  <div className="flex items-center gap-4 text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" /> Logged on: <strong className="text-slate-700 dark:text-slate-300">{formatDate(c.submittedAt)}</strong>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" /> {c.location || 'Campus'}
+                    </span>
+                    {c.attachments && c.attachments.length > 0 && (
+                      <span className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300">
+                        <Paperclip className="w-3.5 h-3.5 text-[#8a2410]" /> {c.attachments.length} attachment(s)
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setTrackQuery(c.id);
+                      setActiveView('track');
+                    }}
+                    className="px-4 py-1.5 bg-[#8a2410] text-white font-bold text-xs rounded-xl hover:bg-[#6f1b0c] cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View Details
+                  </button>
                 </div>
               </div>
-
-              {/* Right CTA Actions */}
-              <div className="flex items-center gap-3 self-end md:self-center">
-                <button
-                  onClick={() => {
-                    setTrackQuery(item.id);
-                    setActiveView('track');
-                  }}
-                  className="bg-stone-100 hover:bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-2.5 rounded-2xl border border-stone-200 hover:border-emerald-300 transition-colors cursor-pointer"
-                >
-                  Live Progress Bar
-                </button>
-                
-                <button
-                  onClick={() => setSelectedComplaint(item)}
-                  className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  <span>View Details</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
-    </section>
+      {/* Pagination Bar */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border border-stone-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+          <span>Page {currentPage} of {totalPages}</span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+              className="px-3 py-1.5 bg-stone-100 dark:bg-slate-700 rounded-lg disabled:opacity-50 cursor-pointer"
+            >
+              Previous
+            </button>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="px-3 py-1.5 bg-stone-100 dark:bg-slate-700 rounded-lg disabled:opacity-50 cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 };

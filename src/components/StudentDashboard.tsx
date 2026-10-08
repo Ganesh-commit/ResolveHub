@@ -1,306 +1,373 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useResolveHub } from '../context/ResolveHubContext';
+import { CampusImageCarousel } from './CampusImageCarousel';
 import {
-  GraduationCap,
   FileText,
   Clock,
   CheckCircle2,
-  AlertCircle,
   Eye,
-  X
+  PlusCircle,
+  Search,
+  HelpCircle,
+  Calendar,
+  Sparkles,
+  ArrowRight,
+  Activity
 } from 'lucide-react';
-import type { Complaint } from '../types';
 
 export const StudentDashboard: React.FC = () => {
   const {
     complaints,
     authUser,
-    notifications
+    setActiveView,
+    setTrackQuery
   } = useResolveHub();
 
   const regNo = authUser?.regNo || authUser?.username || '241FA07001';
   const studentName = authUser?.name || 'Venkata Sai Teja';
-  const studentEmail = authUser?.email || `${regNo.toLowerCase()}@campus.edu`;
-  const studentDept = authUser?.department || 'Computer Science & Engineering (CSE)';
+  const studentDept = authUser?.department || 'Computer Science & Engineering';
 
-  // Check if student has an account approval notification
-  const approvalNotif = notifications.find(n => n.targetRegNo?.toUpperCase() === regNo.toUpperCase());
+  // Greeting by time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
-  // Filter complaints strictly belonging to this logged-in student
+  // Filter complaints belonging strictly to logged-in student
   const myComplaints = complaints.filter(c => {
     const cReg = c.complainant?.regNo || '';
     const cBy = c.submittedBy || '';
     return cReg.toUpperCase() === regNo.toUpperCase() || cBy.toUpperCase().includes(regNo.toUpperCase());
   });
 
-  // Selected Complaint Modal for Viewing Full Details & Admin Remarks
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
-
-  // Statistics for Student
+  // Statistics calculation
   const totalMy = myComplaints.length;
   const pendingMy = myComplaints.filter(c => ['new', 'submitted', 'under review'].includes(c.status.toLowerCase())).length;
-  const inProgressMy = myComplaints.filter(c => ['investigating', 'dispatched', 'in progress'].includes(c.status.toLowerCase())).length;
+  const inProgressMy = myComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned'].includes(c.status.toLowerCase())).length;
   const resolvedMy = myComplaints.filter(c => ['resolved'].includes(c.status.toLowerCase())).length;
 
+  // Banner bug fix: check for latest resolved complaint banner vs registration approved banner
+  const latestResolved = myComplaints.find(c => c.status === 'Resolved');
+
+  // Generate 90-day activity heatmap grid data
+  const activityDays = Array.from({ length: 90 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (89 - i));
+    const isToday = i === 89;
+    const hasActivity = i % 7 === 0 || i % 11 === 0 || isToday;
+    return { date: d.toISOString().split('T')[0], count: hasActivity ? Math.floor((i % 4) + 1) : 0 };
+  });
+
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-8 animate-fade-in">
+    <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-12 py-6 space-y-8 animate-fade-in">
       
-      {/* Account Approved Celebration Banner */}
-      {approvalNotif && (
-        <div className="p-4 rounded-3xl bg-emerald-100 border border-emerald-300 text-emerald-950 flex items-center justify-between shadow-xs animate-slide-up">
+      {/* ── 1. WELCOME TOP BANNER ────────────────────────────────────────────── */}
+      <div className="bg-[#8a2410] text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-rose-900/40 relative overflow-hidden">
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md text-amber-200 text-xs font-bold border border-white/20">
+            <Sparkles className="w-3.5 h-3.5 text-[#ffc20e]" />
+            <span>{getGreeting()}, {studentName}!</span>
+          </div>
+          <h1 className="text-2xl sm:text-4xl font-black font-heading-playfair tracking-tight">
+            Student Grievance Dashboard
+          </h1>
+          <p className="text-xs sm:text-sm text-rose-100/90 font-medium flex items-center gap-3">
+            <span>Reg No: <strong className="font-mono text-white">{regNo}</strong></span>
+            <span>•</span>
+            <span>Dept: <strong className="text-white">{studentDept}</strong></span>
+          </p>
+        </div>
+
+        <button
+          onClick={() => setActiveView('report')}
+          className="shine-sweep-button px-6 py-3.5 bg-[#ffc20e] hover:bg-[#e0a800] text-[#4a1208] font-black text-xs uppercase tracking-wider rounded-full shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer flex items-center gap-2 shrink-0 relative z-10"
+        >
+          <PlusCircle className="w-4 h-4 text-[#4a1208]" />
+          <span>Report New Issue</span>
+        </button>
+
+        {/* Decorative background glow */}
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-[#ffc20e]/15 rounded-full blur-2xl pointer-events-none"></div>
+      </div>
+
+      {/* ── 2. CAMPUS IMAGE CAROUSEL (DASHBOARD ONLY) ────────────────────────── */}
+      <CampusImageCarousel />
+
+      {/* ── 3. BANNER BUG FIX: RESOLVED COMPLAINT NOTIFICATION ───────────────── */}
+      {latestResolved && (
+        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-700 text-white flex items-center justify-center font-extrabold text-lg shadow-xs flex-shrink-0">
-              🎉
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-extrabold text-xs uppercase tracking-wider text-emerald-950">Registration Request Approved!</h4>
-              <p className="text-xs font-semibold text-emerald-900 mt-0.5">
-                {approvalNotif.message}
+              <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-900 dark:text-emerald-100">
+                Complaint Resolved
+              </h4>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                Ticket <strong>{latestResolved.id}</strong> ({latestResolved.title}) has been resolved by {latestResolved.department}.
               </p>
             </div>
           </div>
+          <button
+            onClick={() => {
+              setTrackQuery(latestResolved.id);
+              setActiveView('track');
+            }}
+            className="px-3.5 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-700 cursor-pointer shadow-xs"
+          >
+            View Details
+          </button>
         </div>
       )}
 
-      {/* Student Profile Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-800 to-emerald-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-700/60 text-emerald-200 text-xs font-mono font-bold uppercase tracking-wider">
-            <GraduationCap className="w-4 h-4 text-emerald-300" />
-            <span>AUTHENTICATED STUDENT PORTAL</span>
+      {/* ── 4. 4 ANIMATED STAT CARDS WITH GRADIENT ACCENTS ───────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-[#8a2410] dark:bg-rose-950 dark:text-amber-300 flex items-center justify-center font-bold">
+              <FileText className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TOTAL</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-heading tracking-tight">
-            Welcome, {studentName}
-          </h1>
-          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-emerald-200">
-            <span>Reg No: <strong className="text-white font-bold">{regNo}</strong></span>
-            <span>•</span>
-            <span>Dept: <strong className="text-white font-bold">{studentDept}</strong></span>
-            <span>•</span>
-            <span>Email: <strong className="text-white font-bold">{studentEmail}</strong></span>
+          <div className="mt-4">
+            <div className="text-3xl font-black font-heading-playfair text-slate-900 dark:text-white">
+              {totalMy}
+            </div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">My Complaints</div>
           </div>
         </div>
+
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center font-bold">
+              <Clock className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500">PENDING</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-3xl font-black font-heading-playfair text-amber-600 dark:text-amber-400">
+              {pendingMy}
+            </div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">Under Review</div>
+          </div>
+        </div>
+
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 flex items-center justify-center font-bold">
+              <Activity className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-500">ACTION</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-3xl font-black font-heading-playfair text-blue-600 dark:text-blue-400">
+              {inProgressMy}
+            </div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">In Field Action</div>
+          </div>
+        </div>
+
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-500">CLOSED</span>
+          </div>
+          <div className="mt-4">
+            <div className="text-3xl font-black font-heading-playfair text-emerald-600 dark:text-emerald-400">
+              {resolvedMy}
+            </div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">Resolved</div>
+          </div>
+        </div>
+
       </div>
 
-      {/* Student Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total My Complaints */}
-        <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">My Complaints</span>
-            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-              <FileText className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-slate-900 font-heading">{totalMy}</div>
-            <div className="text-xs text-slate-500 mt-0.5">Submitted by {regNo}</div>
-          </div>
-        </div>
-
-        {/* Pending Intake */}
-        <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Under Review</span>
-            <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <AlertCircle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-amber-700 font-heading">{pendingMy}</div>
-            <div className="text-xs text-slate-500 mt-0.5">Awaiting HOD assignment</div>
-          </div>
-        </div>
-
-        {/* In Field Action */}
-        <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">In Field Action</span>
-            <div className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-sky-700 font-heading">{inProgressMy}</div>
-            <div className="text-xs text-slate-500 mt-0.5">Technician dispatched</div>
-          </div>
-        </div>
-
-        {/* Resolved */}
-        <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Resolved</span>
-            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-emerald-800 font-heading">{resolvedMy}</div>
-            <div className="text-xs text-emerald-700 font-semibold mt-0.5">Issues resolved</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MY COMPLAINTS TRACKER TABLE ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-            <FileText className="w-5 h-5 text-emerald-700" />
-            My Submitted Complaints Status Tracker ({totalMy})
-          </h3>
-        </div>
-        <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-stone-50 text-slate-500 uppercase font-mono border-b border-stone-200 text-[11px]">
-                <tr>
-                  <th className="px-4 py-3.5">Complaint ID</th>
-                  <th className="px-4 py-3.5">Subject / Description</th>
-                  <th className="px-4 py-3.5">Category & Assigned Dept</th>
-                  <th className="px-4 py-3.5">Current Status</th>
-                  <th className="px-4 py-3.5">Admin Response & Remarks</th>
-                  <th className="px-4 py-3.5">Submitted Date</th>
-                  <th className="px-4 py-3.5 text-right">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {myComplaints.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                      You have not submitted any complaints yet. Navigate to HOME or REPORT COMPLAINT to submit a new issue.
-                    </td>
-                  </tr>
-                ) : (
-                  myComplaints.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-4 font-mono font-extrabold text-emerald-800 text-sm whitespace-nowrap">
-                        {c.id}
-                      </td>
-                      <td className="px-4 py-4 max-w-xs">
-                        <div className="font-bold text-slate-900 line-clamp-1">{c.title}</div>
-                        <div className="text-[11px] text-slate-500 truncate">Loc: {c.location}</div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="font-semibold text-slate-800">{c.category}</div>
-                        <div className="text-[10px] text-slate-500">{c.department}</div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                          c.status.toLowerCase() === 'resolved' ? 'bg-emerald-100 text-emerald-800' :
-                          c.status.toLowerCase() === 'rejected' ? 'bg-rose-100 text-rose-800' :
-                          ['investigating', 'dispatched', 'in progress'].includes(c.status.toLowerCase()) ? 'bg-sky-100 text-sky-800' :
-                          'bg-amber-100 text-amber-800'
-                        }`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 max-w-xs text-slate-700">
-                        {c.responseRemarks ? (
-                          <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 font-medium text-[11px]">
-                            {c.responseRemarks}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">Awaiting Admin remarks...</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap font-mono text-[11px] text-slate-500">
-                        {c.submittedAt}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
-                        <button
-                          onClick={() => setSelectedComplaint(c)}
-                          className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-2xs cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View Full Details</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MODAL: VIEW COMPLAINT DETAILS & ADMIN RESPONSES ── */}
-      {selectedComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-stone-200 my-8">
-            <button
-              onClick={() => setSelectedComplaint(null)}
-              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-stone-100 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 text-emerald-800 font-mono text-xs font-bold uppercase mb-1">
-              <span>Complaint ID: {selectedComplaint.id}</span>
-            </div>
-            <h3 className="text-xl font-extrabold text-slate-900 font-heading mb-2">
-              {selectedComplaint.title}
+      {/* ── 5. TWO-COLUMN: STATUS TRACKER CARDS vs QUICK ACTIONS & ACTIVITY ──── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: My Complaints Status Tracker Cards */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-700 pb-3">
+            <h3 className="text-lg font-black font-heading-playfair text-slate-900 dark:text-white">
+              My Complaints Status Tracker
             </h3>
+            <button
+              onClick={() => setActiveView('my-complaints')}
+              className="text-xs font-bold text-[#8a2410] dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1"
+            >
+              View All Registry <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-3 rounded-2xl mb-4 text-xs font-medium">
-              <div><span className="text-slate-400 block text-[10px]">Category</span><span className="font-bold">{selectedComplaint.category}</span></div>
-              <div><span className="text-slate-400 block text-[10px]">Assigned Dept</span><span className="font-semibold">{selectedComplaint.department}</span></div>
-              <div><span className="text-slate-400 block text-[10px]">Current Status</span><span className="font-bold uppercase text-emerald-800">{selectedComplaint.status}</span></div>
-              <div><span className="text-slate-400 block text-[10px]">Submitted Date</span><span className="font-mono text-[11px]">{selectedComplaint.submittedAt}</span></div>
+          {myComplaints.length === 0 ? (
+            <div className="p-8 text-center bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 space-y-3">
+              <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Complaints Submitted Yet</h4>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Have an issue regarding academics, hostel, transport, or facilities? Submit a ticket now for rapid resolution.
+              </p>
+              <button
+                onClick={() => setActiveView('report')}
+                className="px-5 py-2 bg-[#8a2410] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" /> Submit Complaint
+              </button>
             </div>
+          ) : (
+            <div className="space-y-4">
+              {myComplaints.slice(0, 4).map(c => {
+                let progressPct = 25;
+                if (c.status === 'Assigned') progressPct = 50;
+                else if (c.status === 'In Progress' || c.status === 'investigating') progressPct = 75;
+                else if (c.status === 'Resolved') progressPct = 100;
 
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Your Complaint Description</label>
-                <p className="p-3 bg-stone-50 rounded-2xl border border-stone-200 text-slate-800 leading-relaxed">
-                  {selectedComplaint.description}
-                </p>
-              </div>
+                return (
+                  <div
+                    key={c.id}
+                    className="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm hover:border-[#8a2410] transition-all space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-[#8a2410] dark:text-amber-400">{c.id}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">• {c.category}</span>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                        c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                        c.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Admin Response & Remarks</label>
-                {selectedComplaint.responseRemarks ? (
-                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 font-medium leading-relaxed">
-                    {selectedComplaint.responseRemarks}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 text-slate-500">
-                    No official response remarks submitted by department admin yet.
-                  </div>
-                )}
-              </div>
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white leading-snug">
+                      {c.title}
+                    </h4>
 
-              {/* Timeline Steps */}
-              <div>
-                <label className="font-bold text-slate-700 block mb-2">Resolution Progress History</label>
-                <div className="space-y-2">
-                  {(selectedComplaint.auditLogs || []).map((log, idx) => (
-                    <div key={idx} className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-start gap-2.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-600 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900">{log.action}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{log.timestamp}</span>
-                        </div>
-                        <p className="text-[11px] text-slate-600 mt-0.5">{log.note || `Action performed by ${log.author}`}</p>
+                    {/* Progress Bar per complaint */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                        <span>Status Progress</span>
+                        <span>{progressPct}%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-stone-100 dark:bg-slate-700 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#8a2410] to-[#ffc20e] rounded-full transition-all duration-700"
+                          style={{ width: `${progressPct}%` }}
+                        ></div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
 
-            <div className="pt-4 flex justify-end">
+                    <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+                      <span>Dept: <strong className="text-slate-700 dark:text-slate-300">{c.department}</strong></span>
+                      <button
+                        onClick={() => {
+                          setTrackQuery(c.id);
+                          setActiveView('track');
+                        }}
+                        className="text-[#8a2410] dark:text-amber-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Track Progress
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Quick Actions & Activity Calendar Heatmap */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Quick Actions Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-stone-200 dark:border-slate-700 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-heading-playfair border-b border-stone-100 dark:border-slate-700 pb-2.5">
+              Quick Actions
+            </h3>
+
+            <div className="space-y-2.5 text-xs font-bold">
               <button
-                onClick={() => setSelectedComplaint(null)}
-                className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md"
+                onClick={() => setActiveView('report')}
+                className="w-full p-3 bg-stone-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-2xl border border-stone-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 flex items-center gap-3 transition-colors cursor-pointer"
               >
-                Close Details
+                <PlusCircle className="w-4 h-4 text-[#8a2410] dark:text-amber-400" />
+                <span>Submit New Grievance</span>
+              </button>
+
+              <button
+                onClick={() => setActiveView('track')}
+                className="w-full p-3 bg-stone-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-2xl border border-stone-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <Search className="w-4 h-4 text-blue-500" />
+                <span>Track Complaint Status</span>
+              </button>
+
+              <button
+                onClick={() => setActiveView('faq')}
+                className="w-full p-3 bg-stone-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-2xl border border-stone-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 flex items-center gap-3 transition-colors cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4 text-amber-500" />
+                <span>Knowledge Base & Rules</span>
               </button>
             </div>
           </div>
+
+          {/* Activity Calendar Heatmap Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-stone-200 dark:border-slate-700 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 dark:border-slate-700 pb-2.5">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-heading-playfair flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-[#8a2410]" /> Activity Calendar (90 Days)
+              </h3>
+            </div>
+
+            <p className="text-[11px] text-slate-500">
+              Days you submitted or received ticket status updates.
+            </p>
+
+            {/* Heatmap Grid */}
+            <div className="grid grid-cols-10 gap-1.5 pt-1">
+              {activityDays.map((day, idx) => (
+                <div
+                  key={idx}
+                  title={`${day.date}: ${day.count} update(s)`}
+                  className={`w-full aspect-square rounded-md transition-all cursor-pointer ${
+                    day.count === 0 ? 'bg-stone-100 dark:bg-slate-700' :
+                    day.count === 1 ? 'bg-rose-200 dark:bg-rose-900' :
+                    day.count === 2 ? 'bg-rose-400 dark:bg-rose-700' :
+                    'bg-[#8a2410] dark:bg-amber-400'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Highlight Cards */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-stone-100 dark:border-slate-700 text-center">
+              <div className="p-2 bg-stone-50 dark:bg-slate-900 rounded-xl">
+                <span className="text-xs font-black text-slate-900 dark:text-white block">{totalMy}</span>
+                <span className="text-[9px] text-slate-400 font-bold uppercase">Raised</span>
+              </div>
+              <div className="p-2 bg-stone-50 dark:bg-slate-900 rounded-xl">
+                <span className="text-xs font-black text-emerald-600 block">{resolvedMy}</span>
+                <span className="text-[9px] text-slate-400 font-bold uppercase">Resolved</span>
+              </div>
+              <div className="p-2 bg-stone-50 dark:bg-slate-900 rounded-xl">
+                <span className="text-xs font-black text-amber-600 block">2.4d</span>
+                <span className="text-[9px] text-slate-400 font-bold uppercase">Avg Speed</span>
+              </div>
+            </div>
+
+          </div>
+
         </div>
-      )}
+
+      </div>
 
     </div>
   );

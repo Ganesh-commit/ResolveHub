@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 const { v4: uuidv4 } = require('uuid');
@@ -11,18 +11,21 @@ const SignupRequest = require('./models/SignupRequest');
 const ActivityLog = require('./models/ActivityLog');
 const SystemSetting = require('./models/SystemSetting');
 
-// ── Password Hashing Helpers ─────────────────────────────────────────────
-const SALT = 'resolvehub_secure_salt_2026';
-
-function hashPassword(password) {
+// ── Password Hashing Helpers using Bcrypt ────────────────────────────────
+async function hashPassword(password) {
   if (!password) return '';
-  return crypto.pbkdf2Sync(password, SALT, 1000, 64, 'sha512').toString('hex');
+  return await bcrypt.hash(password, 10);
 }
 
-function verifyPassword(password, storedHash) {
+async function verifyPassword(password, storedHash) {
   if (!password || !storedHash) return false;
-  if (password === storedHash) return true;
-  return hashPassword(password) === storedHash;
+  try {
+    const isBcrypt = storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$');
+    if (isBcrypt) {
+      return await bcrypt.compare(password, storedHash);
+    }
+  } catch (e) {}
+  return false;
 }
 
 // ── Connect MongoDB ──────────────────────────────────────────────────────
@@ -38,14 +41,13 @@ async function connectDB() {
     });
     console.log(`✅ Connected successfully to MongoDB! (${mongoose.connection.host})`);
     
-    // Auto-seed initial defaults
+    // Auto-seed initial defaults & superadmin
     await seedInitialData();
   } catch (err) {
     console.error(`⚠️ Primary MongoDB Connection Note: ${err.message}`);
     if (isPlaceholder) {
       console.log(`💡 Note: Please update MONGODB_URI in server/.env with your exact MongoDB Atlas connection link from cloud.mongodb.com`);
     } else {
-      // Try local fallback if Atlas URI had invalid credentials or network block
       try {
         console.log(`🔄 Attempting Local MongoDB fallback (mongodb://127.0.0.1:27017/resolvehub)...`);
         await mongoose.connect('mongodb://127.0.0.1:27017/resolvehub', { serverSelectionTimeoutMS: 3000 });
@@ -66,135 +68,42 @@ async function seedInitialData() {
     if (settingCount === 0) {
       await SystemSetting.create({
         key: 'global_settings',
-        categories: ['Hostel & Facilities', 'IT & Network', 'Finance & Scholarship', 'Sanitation & Hygiene', 'Academics', 'Harassment & Discipline'],
-        departments: ['Facilities & HVAC', 'IT & Network Systems', 'Student Finance Bureau', 'Health & Sanitation', 'Academics Redressal', 'Internal Grievance Committee'],
+        categories: [
+          'Transport',
+          'Examinations',
+          'Library',
+          'Canteen & Food',
+          'Security & Safety',
+          'Placements & Training',
+          'Infrastructure & Maintenance',
+          'Sports & Clubs',
+          'Administration & Certificates',
+          'Health & Medical',
+          'Faculty & Teaching',
+          'Others'
+        ],
+        departments: [
+          'Information Technology (IT)',
+          'CSE (Computer Science & Engineering)',
+          'AI & ML (Artificial Intelligence & Machine Learning)',
+          'EEE (Electrical & Electronics Engineering)',
+          'BI & BT (Bio-Informatics & Bio-Technology)',
+          'Mechanical Engineering',
+          'Robotics',
+          'ECE (Electronics & Communication Engineering)',
+          'Textile Industry',
+          'CS-BS (Computer Science & Business Systems)',
+          'CS-DS (Computer Science & Data Science)'
+        ],
         priorities: ['Low', 'Medium', 'High', 'Urgent'],
         slaHours: { critical: 2, high: 4, medium: 8, low: 24 }
       });
     }
 
-    // 2. Seed Super Admin Account & Purge Hardcoded Legacy Dept Admins
-    await Staff.deleteMany({ username: { $in: ['superadmin', 'admin', 'ksaiganesh64', 'dept_it', 'dept_hvac', 'dept_finance', 'dept_sanitation', 'dept_academics', 'dept_grievance'] } });
+    // 2. Seed Super Admin via seedAdmin helper
+    const seedAdmin = require('./scripts/seedAdmin');
+    await seedAdmin();
 
-    await Staff.create({
-      id: 'admin-super-01',
-      username: 'ksaiganesh64',
-      passwordHash: hashPassword('SAI@@@killer197712200611'),
-      name: 'System Super Admin (Sai Ganesh)',
-      role: 'super_admin',
-      department: 'All Departments',
-      status: 'ACTIVE',
-      createdAt: new Date().toLocaleString('en-IN')
-    });
-
-    // 3. Seed Demo Students
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      await User.insertMany([
-        {
-          id: 'usr-student-001',
-          regNo: '241FA07001',
-          fullName: 'Venkata Sai Teja',
-          email: 'saiteja.241fa07001@gmail.com',
-          department: 'Computer Science & Engineering (CSE)',
-          year: '3rd Year',
-          passwordHash: hashPassword('241FA07001'),
-          status: 'ACTIVE',
-          activatedAt: '2026-09-15 09:00 AM'
-        },
-        {
-          id: 'usr-student-002',
-          regNo: '241FA07015',
-          fullName: 'Ananya Sharma',
-          email: 'ananya.s@campus.edu',
-          department: 'Electronics & Communication (ECE)',
-          year: '2nd Year',
-          passwordHash: hashPassword('241FA07015'),
-          status: 'ACTIVE',
-          activatedAt: '2026-09-15 09:30 AM'
-        }
-      ]);
-    }
-
-    // 4. Seed Initial Tickets
-    const ticketCount = await Ticket.countDocuments();
-    if (ticketCount === 0) {
-      await Ticket.insertMany([
-        {
-          id: 'RP-8042',
-          title: 'Air Conditioning Breakdown in Block-C Server & Common Hall',
-          category: 'Hostel & Facilities',
-          department: 'Facilities & HVAC',
-          urgency: 'high',
-          status: 'dispatched',
-          slaStatus: 'normal',
-          location: 'Block-C, Room 304 & Common Wing',
-          description: 'Central cooling unit tripping every 10 minutes. Severe compressor noise and rising temperature.',
-          complainant: { regNo: '241FA07001', name: 'Venkata Sai Teja', email: 'saiteja.241fa07001@gmail.com', role: 'Student' },
-          assignedAgent: { name: 'Rahul K.', role: 'Lead HVAC Specialist', phone: '+91 94412 88201', department: 'Facilities & HVAC' },
-          responseRemarks: 'Diagnostic team on-site inspecting central chiller compressor.',
-          eta: 'Today, 02:30 PM',
-          etaMinutesLeft: 58,
-          currentStepIndex: 2,
-          createdAt: '2026-09-15, 10:30 AM',
-          updatedAt: '12 mins ago',
-          attachments: [
-            { id: 'att-1', name: 'ac_compressor_trip.jpg', size: '1.4 MB', type: 'image/jpeg' },
-            { id: 'att-2', name: 'thermostat_reading.png', size: '820 KB', type: 'image/png' }
-          ],
-          auditLogs: [
-            { id: 'l1', timestamp: '10:30 AM', author: 'System Dispatch', role: 'Automated Bot', action: 'Ticket Logged', note: 'Issue classified as High Urgency.' },
-            { id: 'l2', timestamp: '10:45 AM', author: 'Dispatcher Sharma', role: 'Super Admin', action: 'Ticket Assigned', note: 'Assigned to Facilities & HVAC division queue.' },
-            { id: 'l3', timestamp: '11:15 AM', author: 'Rahul K.', role: 'Department Admin', action: 'Technician Dispatched', note: 'On-site diagnostic kit deployed.' }
-          ]
-        },
-        {
-          id: 'RP-8039',
-          title: 'Main Library 5GHz Enterprise Wi-Fi Gateway Offline',
-          category: 'IT & Network',
-          department: 'IT & Network Systems',
-          urgency: 'critical',
-          status: 'investigating',
-          slaStatus: 'warning',
-          location: 'Central Library, 2nd Floor Reading Room',
-          description: 'Aruba AP-535 access point blinking red. Over 120 students disconnected.',
-          complainant: { regNo: '241FA07015', name: 'Ananya Sharma', email: 'ananya.s@campus.edu', role: 'Student' },
-          assignedAgent: { name: 'Vikram Mehta', role: 'Senior Network Engineer', phone: '+91 98877 12345', department: 'IT & Network Systems' },
-          responseRemarks: 'Checking core switch PoE port configuration and VLAN router.',
-          eta: 'Today, 01:00 PM',
-          etaMinutesLeft: 32,
-          currentStepIndex: 1,
-          createdAt: '2026-09-15, 09:15 AM',
-          updatedAt: '25 mins ago',
-          attachments: [{ id: 'att-3', name: 'ap_led_status.jpg', size: '2.1 MB', type: 'image/png' }],
-          auditLogs: [
-            { id: 'l4', timestamp: '09:15 AM', author: 'System Dispatch', role: 'Automated Bot', action: 'Ticket Logged', note: 'SLA timer initiated: 4.0 Hours Max.' },
-            { id: 'l5', timestamp: '09:30 AM', author: 'Vikram Mehta', role: 'Department Admin', action: 'Investigating', note: 'Remote ping to switch port timed out.' }
-          ]
-        },
-        {
-          id: 'RP-7994',
-          title: 'Merit Scholarship Disbursal Ledger Discrepancy (Semester V)',
-          category: 'Finance & Scholarship',
-          department: 'Student Finance Bureau',
-          urgency: 'medium',
-          status: 'new',
-          slaStatus: 'normal',
-          location: 'Admin Wing, Finance Counter 3',
-          description: 'Tuition fee waiver credited at 40% instead of official 75%.',
-          complainant: { regNo: '241FA07001', name: 'Venkata Sai Teja', email: 'saiteja.241fa07001@gmail.com', role: 'Student' },
-          assignedAgent: null,
-          responseRemarks: '',
-          eta: 'Tomorrow, 12:00 PM',
-          etaMinutesLeft: 840,
-          currentStepIndex: 0,
-          createdAt: '2026-09-14, 04:20 PM',
-          updatedAt: 'Yesterday, 04:20 PM',
-          attachments: [{ id: 'att-4', name: 'scholarship_award_letter.pdf', size: '640 KB', type: 'application/pdf' }],
-          auditLogs: [{ id: 'l6', timestamp: 'Yesterday, 04:20 PM', author: 'System Dispatch', role: 'Automated Bot', action: 'Ticket Logged', note: 'Queued in Finance verification backlog.' }]
-        }
-      ]);
-    }
   } catch (err) {
     console.error('Error during MongoDB initial data seeding:', err);
   }

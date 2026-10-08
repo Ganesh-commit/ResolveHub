@@ -6,10 +6,13 @@ export interface AuthUser {
   username?: string;
   regNo?: string;
   email?: string;
+  phone?: string;
   role: UserRole;
   department?: string;
   year?: string;
   token?: string;
+  avatarUrl?: string;
+  mustChangePassword?: boolean;
 }
 
 export type ComplaintStatus = 
@@ -18,14 +21,23 @@ export type ComplaintStatus =
 
 export type ComplaintPriority = 'Low' | 'Medium' | 'High' | 'Urgent' | 'low' | 'medium' | 'high' | 'critical';
 
+export type EscalationLevel = 'LEVEL_0_STAFF' | 'LEVEL_1_HOD' | 'LEVEL_2_DEAN';
+
 export interface TimelineStep {
+  stepKey?: 'submitted' | 'assigned' | 'in_progress' | 'resolved' | string;
   title: string;
-  status: string;
-  date: string;
-  description: string;
+  timestamp?: string | Date | null;
+  status?: string;
+  date?: string;
+  description?: string;
+  note?: string;
   completed: boolean;
   assignedOfficer?: string;
   department?: string;
+  actor?: {
+    name: string;
+    role: string;
+  };
 }
 
 export interface ComplaintAuditLog {
@@ -65,6 +77,25 @@ export interface Complaint {
     phone?: string;
   } | null;
   responseRemarks?: string;
+  
+  // ── Anonymous Mode & Campus Heatmap ──
+  isAnonymous?: boolean;
+  locationId?: string;
+  zone?: string;
+  hostelBlock?: string;
+  rating?: number;
+  ratingFeedback?: string;
+  isReopened?: boolean;
+  reopenReason?: string;
+
+  // ── SLA Escalation Fields ──
+  slaDeadline?: string;
+  slaStatus?: string;
+  escalationLevel?: EscalationLevel;
+  isEscalated?: boolean;
+  escalatedAt?: string;
+  escalationReason?: string;
+
   timeline: TimelineStep[];
   attachments?: { id?: string; name: string; size: string; type: string }[];
   auditLogs?: ComplaintAuditLog[];
@@ -89,6 +120,7 @@ export interface SignupRequest {
   email: string;
   department: string;
   year: string;
+  phone?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   rejectionReason?: string | null;
@@ -134,13 +166,37 @@ export interface SystemSettings {
 
 export type ViewMode = 
   | 'home' 
+  | 'landing'
+  | 'about'
   | 'dashboard' 
   | 'super_admin_dashboard' 
+  | 'super_admin_complaints'
+  | 'super_admin_departments'
+  | 'super_admin_students'
+  | 'super_admin_admins'
+  | 'super_admin_roles'
+  | 'super_admin_analytics'
+  | 'super_admin_notifications'
+  | 'super_admin_audit'
+  | 'super_admin_settings'
   | 'dept_admin_dashboard' 
+  | 'dept_admin_inbox'
+  | 'dept_admin_complaints'
+  | 'dept_admin_team'
+  | 'dept_admin_assigned'
+  | 'dept_admin_students'
+  | 'dept_admin_analytics'
+  | 'dept_admin_kb'
+  | 'dept_admin_notifications'
+  | 'dept_admin_settings'
   | 'student_dashboard' 
   | 'report' 
   | 'my-complaints' 
   | 'track' 
-  | 'faq';
+  | 'notifications'
+  | 'faq'
+  | 'settings'
+  | 'profile'
+  | 'login';
 
 

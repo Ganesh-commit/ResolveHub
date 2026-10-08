@@ -35,12 +35,14 @@ interface ResolveHubContextType {
   authUser: AuthUser | null;
   userLoggedIn: boolean;
   userRole: UserRole;
-  loginUser: (identifier: string, password: string, role?: UserRole, department?: string) => Promise<{ success: boolean; message?: string }>;
+  loginUser: (identifier: string, password: string, role?: UserRole, department?: string) => Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }>;
   logoutUser: () => void;
+  updateAuthUserAvatar: (avatarUrl: string) => void;
+  updateAuthUserProfile: (data: Partial<AuthUser>) => void;
   
   // Legacy / Student Auth Wrappers
   currentUserRegNo: string | null;
-  loginWithRegNo: (regNo: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithRegNo: (regNo: string, password: string) => Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }>;
   logout: () => void;
 
   // Complaints & Activity
@@ -68,7 +70,9 @@ interface ResolveHubContextType {
     email: string;
     department: string;
     year: string;
+    phone?: string;
     password: string;
+    confirmPassword: string;
   }) => Promise<{ success: boolean; message?: string }>;
   approveSignupRequest: (requestId: string) => Promise<void>;
   rejectSignupRequest: (requestId: string, reason?: string) => Promise<void>;
@@ -117,9 +121,36 @@ const LOCAL_STORAGE_NOTIFS_KEY = 'resolvehub_campus_notifs_db';
 const LOCAL_STORAGE_SIGNUP_REQ_KEY = 'resolvehub_campus_signup_requests_db';
 const LOCAL_STORAGE_ADMINS_KEY = 'resolvehub_campus_admins_db';
 
+export const ACADEMIC_DEPARTMENTS = [
+  'Information Technology (IT)',
+  'CSE (Computer Science & Engineering)',
+  'AI & ML (Artificial Intelligence & Machine Learning)',
+  'EEE (Electrical & Electronics Engineering)',
+  'BI & BT (Bio-Informatics & Bio-Technology)',
+  'Mechanical Engineering',
+  'Robotics',
+  'ECE (Electronics & Communication Engineering)',
+  'Textile Industry',
+  'CS-BS (Computer Science & Business Systems)',
+  'CS-DS (Computer Science & Data Science)'
+];
+
 const DEFAULT_SETTINGS: SystemSettings = {
-  categories: ['Hostel & Facilities', 'IT & Network', 'Finance & Scholarship', 'Sanitation & Hygiene', 'Academics', 'Harassment & Discipline'],
-  departments: ['Facilities & HVAC', 'IT & Network Systems', 'Student Finance Bureau', 'Health & Sanitation', 'Academics Redressal', 'Internal Grievance Committee'],
+  categories: [
+    'Transport',
+    'Examinations',
+    'Library',
+    'Canteen & Food',
+    'Security & Safety',
+    'Placements & Training',
+    'Infrastructure & Maintenance',
+    'Sports & Clubs',
+    'Administration & Certificates',
+    'Health & Medical',
+    'Faculty & Teaching',
+    'Others'
+  ],
+  departments: ACADEMIC_DEPARTMENTS,
   priorities: ['Low', 'Medium', 'High', 'Urgent'],
   slaHours: { critical: 2, high: 4, medium: 8, low: 24 }
 };
@@ -141,7 +172,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const userRole: UserRole = authUser?.role || 'student';
   const currentUserRegNo = authUser?.regNo || (authUser?.role === 'student' ? authUser.username || null : null);
 
-  // Persistence for Auth Session
+  // Sync Auth User Session to localStorage
   useEffect(() => {
     try {
       if (authUser) {
@@ -154,7 +185,29 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [authUser]);
 
-  // Sync View to Role on Load/Auth Change (For Admins only, students stay on home view)
+  // Session verification via GET /api/v1/auth/me on app load
+  useEffect(() => {
+    if (authUser?.token) {
+      authApi.getMe().then(res => {
+        if (res && res.data) {
+          setAuthUser(prev => prev ? {
+            ...prev,
+            name: res.data.name || res.data.fullName || prev.name,
+            email: res.data.email || prev.email,
+            phone: res.data.phone || prev.phone,
+            avatarUrl: res.data.avatarUrl !== undefined ? res.data.avatarUrl : prev.avatarUrl,
+            department: res.data.department || prev.department
+          } : null);
+        }
+      }).catch(() => {
+        // Token invalid or expired: logout user safely
+        setAuthUser(null);
+        localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
+      });
+    }
+  }, []);
+
+  // Sync View to Role on Load/Auth Change
   useEffect(() => {
     if (authUser) {
       if (authUser.role === 'super_admin' && activeView === 'home') {
@@ -181,7 +234,6 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const saved = localStorage.getItem(LOCAL_STORAGE_NOTIFS_KEY);
       if (saved) {
         const parsed: NotificationItem[] = JSON.parse(saved);
-        // Filter out legacy unscoped status update notifications that caused leak to all students
         return parsed.filter(n => n.type !== 'status_update' || !!n.targetRegNo);
       }
       return [];
@@ -234,9 +286,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (Array.isArray(data)) {
         setComplaints(data);
       }
-    } catch (e) {
-      // Offline fallback
-    }
+    } catch (e) {}
   };
 
   // Fetch Signup Requests
@@ -378,104 +428,65 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setPushBanner(null);
   };
 
-  // ── AUTHENTICATION METHODS ────────────────────────────────────────────────
-  const loginUser = async (identifier: string, password: string, role?: UserRole, department?: string): Promise<{ success: boolean; message?: string }> => {
+  const updateAuthUserAvatar = (avatarUrl: string) => {
+    setAuthUser(prev => prev ? { ...prev, avatarUrl } : null);
+  };
+
+  const updateAuthUserProfile = (data: Partial<AuthUser>) => {
+    setAuthUser(prev => prev ? { ...prev, ...data } : null);
+  };
+
+  // ── AUTHENTICATION METHODS (STRICT BACKEND - NO MOCK FALLBACKS) ────────────
+  const loginUser = async (identifier: string, password: string, role?: UserRole, department?: string): Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }> => {
     try {
-      const data = await authApi.login(identifier, password, role);
-      if (data && data.role) {
-        const authData: AuthUser = {
-          id: data.id,
-          name: data.name,
-          username: data.username || identifier,
-          regNo: data.regNo || (data.role === 'student' ? identifier.toUpperCase() : undefined),
-          email: data.email,
-          role: data.role as UserRole,
-          department: data.department || department,
-          token: data.token
-        };
+      const resData = await authApi.login(identifier, password, role);
 
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-
-        if (authData.role === 'super_admin') {
-          setActiveView('super_admin_dashboard');
-          addToast('success', 'Super Admin Login', `Welcome System Super Admin ${authData.name}`);
-        } else if (authData.role === 'dept_admin') {
-          setActiveView('dept_admin_dashboard');
-          addToast('success', 'Department Admin Login', `Welcome ${authData.name} (${authData.department})`);
-        } else {
-          setActiveView('student_dashboard');
-          addToast('success', 'Student Sign In', `Welcome ${authData.name} (Reg No: ${authData.regNo})`);
+      if (resData && resData.success) {
+        if (resData.mustChangePassword) {
+          return {
+            success: true,
+            mustChangePassword: true,
+            regNo: resData.data?.regNo || identifier.toUpperCase()
+          };
         }
 
-        return { success: true };
+        const data = resData.data;
+        if (data && data.role) {
+          const authData: AuthUser = {
+            id: data.id,
+            name: data.name || data.fullName,
+            username: data.username || identifier,
+            regNo: data.regNo || (data.role === 'student' ? identifier.toUpperCase() : undefined),
+            email: data.email || '',
+            phone: data.phone || '',
+            role: data.role as UserRole,
+            department: data.department || department,
+            avatarUrl: data.avatarUrl || '',
+            token: data.token
+          };
+
+          setAuthUser(authData);
+          setIsLoginModalOpen(false);
+
+          if (authData.role === 'super_admin') {
+            setActiveView('super_admin_dashboard');
+            addToast('success', 'Super Admin Login', `Welcome System Super Admin ${authData.name}`);
+          } else if (authData.role === 'dept_admin') {
+            setActiveView('dept_admin_dashboard');
+            addToast('success', 'Department Admin Login', `Welcome ${authData.name} (${authData.department})`);
+          } else {
+            setActiveView('student_dashboard');
+            addToast('success', 'Student Sign In', `Welcome ${authData.name} (Reg No: ${authData.regNo})`);
+          }
+
+          return { success: true };
+        }
       }
+      return { success: false, message: resData?.error || resData?.message || 'Invalid credentials' };
     } catch (err: any) {
-      // Offline / Local Fallback Logic when backend API is unreachable
-      const cleanId = identifier.trim().toLowerCase();
-
-      // 1. Check Super Admin Credentials
-      if (cleanId === 'ksaiganesh64' || cleanId === 'superadmin') {
-        const authData: AuthUser = {
-          id: 'admin-super-01',
-          name: 'System Super Admin (Sai Ganesh)',
-          username: 'ksaiganesh64',
-          role: 'super_admin',
-          department: 'All Departments',
-          token: 'auth-token-superadmin'
-        };
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('super_admin_dashboard');
-        addToast('success', 'Super Admin Login', `Welcome System Super Admin ${authData.name}`);
-        return { success: true };
-      }
-
-      // 2. Check Department Admins (MUST exist in adminsList created by Super Admin)
-      const foundCreatedAdmin = adminsList.find(a => a.username.toLowerCase() === cleanId && a.role === 'dept_admin');
-
-      if (foundCreatedAdmin) {
-        if (foundCreatedAdmin.status === 'INACTIVE') {
-          return { success: false, message: 'This Admin account has been deactivated by Super Admin.' };
-        }
-        const authData: AuthUser = {
-          id: foundCreatedAdmin.id,
-          name: foundCreatedAdmin.name,
-          username: foundCreatedAdmin.username,
-          role: 'dept_admin',
-          department: foundCreatedAdmin.department,
-          token: `auth-token-${foundCreatedAdmin.id}`
-        };
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('dept_admin_dashboard');
-        addToast('success', 'Department Admin Login', `Welcome ${authData.name} (${authData.department})`);
-        return { success: true };
-      }
-
-      // 3. Check Student Fallback
-      if (role === 'student' || /^\d+[a-zA-Z]+\d+$/.test(cleanId) || cleanId.startsWith('241fa')) {
-        const regNoUpper = identifier.toUpperCase();
-        const authData: AuthUser = {
-          id: `usr-${regNoUpper}`,
-          name: `Student (${regNoUpper})`,
-          regNo: regNoUpper,
-          username: regNoUpper,
-          role: 'student',
-          department: 'Engineering',
-          token: `auth-token-student-${regNoUpper}`
-        };
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('student_dashboard');
-        addToast('success', 'Student Sign In', `Welcome ${authData.name} (Reg No: ${authData.regNo})`);
-        return { success: true };
-      }
-
-      return { success: false, message: err.message || 'Invalid Admin Credentials! Account does not exist or has not been created by Super Admin.' };
+      const errorMsg = err.data?.error || err.data?.message || err.message || 'Invalid credentials';
+      return { success: false, message: errorMsg };
     }
-
-    return { success: false, message: 'Authentication failed.' };
   };
 
   const logoutUser = () => {
@@ -615,7 +626,6 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let curTicket = complaints.find(c => c.id === id);
     let targetReg = curTicket?.complainant?.regNo || (curTicket?.submittedBy ? curTicket.submittedBy.match(/Reg No:\s*([A-Za-z0-9]+)/)?.[1] : undefined);
 
-    // If targetReg is not in local state, attempt to fetch backend ticket to target student strictly
     if (!targetReg) {
       try {
         const live: any = await ticketApi.getOne(id);
@@ -645,7 +655,6 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ? `Your complaint (${id}) was REJECTED on ${formattedTimestamp}. Remarks: ${remarks}`
       : `Complaint (${id}) status updated to ${status.toUpperCase()} on ${formattedTimestamp}. Remarks: ${remarks}`;
 
-    // Local state update
     setComplaints(prev =>
       prev.map(c => {
         if (c.id === id) {
@@ -669,12 +678,10 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       })
     );
 
-    // Call backend
     try {
       await ticketApi.updateStatus(id, status, remarks, updatedBy, role);
     } catch (e) {}
 
-    // Notification strictly targeted to complaint student with duplicate prevention
     const newNotif: NotificationItem = {
       id: Math.random().toString(36).substring(2, 9),
       title: notifTitle,
@@ -687,7 +694,6 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       targetRole: 'student'
     };
     setNotifications(prev => {
-      // Prevent duplicate notification for the same complaint ID & same title
       const exists = prev.some(n => n.complaintId === id && n.title === notifTitle);
       if (exists) return prev;
       return [newNotif, ...prev];
@@ -747,7 +753,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     email: string;
     department: string;
     year: string;
+    phone?: string;
     password: string;
+    confirmPassword: string;
   }): Promise<{ success: boolean; message?: string }> => {
     const cleanedRegNo = data.regNo.trim().toUpperCase();
     if (!isValidRegistrationNumber(cleanedRegNo)) {
@@ -755,18 +763,21 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     try {
-      await authApi.submitSignupRequest(data);
+      const res = await authApi.submitSignupRequest(data);
       fetchSignupRequests();
       addToast('info', 'Request Submitted', `Signup request for ${cleanedRegNo} sent to Super Admin.`);
-      return { success: true, message: `Account creation request for Registration Number ${cleanedRegNo} submitted! Pending Super Admin verification.` };
+      return {
+        success: true,
+        message: res.message || 'Your request has been sent to the Super Admin. You can log in after approval.'
+      };
     } catch (err: any) {
-      return { success: false, message: err.message || 'Failed to submit signup request.' };
+      const errorMsg = err.data?.error || err.data?.message || err.message || 'Failed to submit signup request.';
+      return { success: false, message: errorMsg };
     }
   };
 
   const approveSignupRequest = async (requestId: string) => {
     const reqItem = signupRequests.find(r => r.id === requestId);
-    if (!reqItem) return;
 
     try {
       await authApi.approveSignupRequest(requestId);
@@ -776,28 +787,29 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       prev.map(r => (r.id === requestId ? { ...r, status: 'APPROVED', rejectionReason: null } : r))
     );
 
-    const newNotif: NotificationItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      title: `🎉 Registration Request Approved!`,
-      message: `Your account for Reg No: ${reqItem.regNo} (${reqItem.fullName}) has been APPROVED and activated by Super Admin. Welcome to ResolveHub!`,
-      timestamp: 'Just now',
-      read: false,
-      complaintId: '',
-      type: 'announcement',
-      targetRegNo: reqItem.regNo.toUpperCase(),
-      targetRole: 'student'
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+    if (reqItem) {
+      const newNotif: NotificationItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        title: `🎉 Registration Request Approved!`,
+        message: `Your account for Reg No: ${reqItem.regNo} (${reqItem.fullName}) has been APPROVED and activated by Super Admin. Welcome to ResolveHub!`,
+        timestamp: 'Just now',
+        read: false,
+        complaintId: '',
+        type: 'announcement',
+        targetRegNo: reqItem.regNo.toUpperCase(),
+        targetRole: 'student'
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+    }
 
     fetchStudents();
+    fetchSignupRequests();
     playNotificationChime();
-    addToast('success', 'Student Account Approved!', `Reg No: ${reqItem.regNo} account is now ACTIVE.`);
+    addToast('success', 'Student Account Approved!', `Student account is now ACTIVE.`);
   };
 
   const rejectSignupRequest = async (requestId: string, reason?: string) => {
     const reqItem = signupRequests.find(r => r.id === requestId);
-    if (!reqItem) return;
-
     const rejectionReason = reason || 'Registration details could not be verified with college registry.';
 
     try {
@@ -808,51 +820,21 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       prev.map(r => (r.id === requestId ? { ...r, status: 'REJECTED', rejectionReason } : r))
     );
 
-    addToast('warning', 'Signup Request Rejected', `Request for ${reqItem.regNo} rejected.`);
+    fetchSignupRequests();
+    addToast('warning', 'Signup Request Rejected', `Request for ${reqItem?.regNo || requestId} rejected.`);
   };
 
   // ── ADMIN MANAGEMENT ACTIONS ──────────────────────────────────────────────
   const createDeptAdmin = async (data: { name: string; username: string; password: string; department: string }): Promise<{ success: boolean; message?: string }> => {
     const cleanUsername = data.username.trim().toLowerCase();
-    const existing = adminsList.find(a => a.username.toLowerCase() === cleanUsername);
-    if (existing) {
-      return { success: false, message: `An Admin account with username "${cleanUsername}" already exists.` };
-    }
-
     try {
-      let createdAdmin: AdminUser = {
-        id: `admin-dept-${Math.random().toString(36).substring(2, 8)}`,
-        name: data.name.trim(),
-        username: cleanUsername,
-        department: data.department.trim(),
-        role: 'dept_admin',
-        status: 'ACTIVE',
-        createdAt: new Date().toLocaleString('en-IN')
-      };
-
-      try {
-        const res = await authApi.createAdmin({ ...data, username: cleanUsername, role: 'dept_admin' });
-        if (res && res.id) {
-          createdAdmin = {
-            id: res.id,
-            name: res.name,
-            username: res.username,
-            department: res.department,
-            role: res.role,
-            status: res.status,
-            createdAt: res.createdAt
-          };
-        }
-      } catch (backendErr) {
-        // Local fallback when backend unavailable
-      }
-
-      setAdminsList(prev => [createdAdmin, ...prev.filter(a => a.username.toLowerCase() !== cleanUsername)]);
+      await authApi.createAdmin({ ...data, username: cleanUsername, role: 'dept_admin' });
+      fetchAdmins();
       fetchActivityLogs();
       addToast('success', 'Department Admin Created!', `Account created for ${data.name} (${data.department}).`);
       return { success: true, message: `Department Admin "${data.name}" created successfully for ${data.department}.` };
     } catch (err: any) {
-      return { success: false, message: err.message || 'Failed to create Department Admin account.' };
+      return { success: false, message: err.data?.error || err.message || 'Failed to create Department Admin account.' };
     }
   };
 
@@ -915,6 +897,8 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         userRole,
         loginUser,
         logoutUser,
+        updateAuthUserAvatar,
+        updateAuthUserProfile,
         currentUserRegNo,
         loginWithRegNo,
         logout,
