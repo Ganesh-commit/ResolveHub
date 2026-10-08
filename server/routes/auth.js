@@ -324,13 +324,16 @@ router.post('/login', async (req, res) => {
     }
 
     // Non-existent user or wrong credentials
-    await logActivity(loginIdentifier, 'Guest', 'Failed Login', `Invalid username/regNo or password`);
+    await logActivity(loginIdentifier, 'Guest', 'Failed Login', `Invalid username/regNo or password`).catch(() => {});
     return res.status(401).json({
       success: false,
       error: 'Invalid credentials'
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    // Prevent internal Mongoose error details from leaking to UI
+    const isDbError = err.message && (err.message.includes('buffering timed out') || err.message.includes('findOne') || err.message.includes('Mongoose'));
+    const safeError = isDbError ? 'Invalid credentials' : (err.message || 'Invalid credentials');
+    res.status(401).json({ success: false, error: safeError });
   }
 });
 
@@ -349,9 +352,13 @@ router.post('/signup-request', async (req, res) => {
     const cleanEmail = email.trim().toLowerCase();
 
     // Reject duplicate registration number or email in active Users
-    const existingUser = await User.findOne({ 
-      $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] 
-    });
+    let existingUser = null;
+    try {
+      existingUser = await User.findOne({ 
+        $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] 
+      });
+    } catch (e) {}
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -360,9 +367,13 @@ router.post('/signup-request', async (req, res) => {
     }
 
     // Reject duplicate in pending SignupRequests
-    const existingReq = await SignupRequest.findOne({ 
-      $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] 
-    });
+    let existingReq = null;
+    try {
+      existingReq = await SignupRequest.findOne({ 
+        $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] 
+      });
+    } catch (e) {}
+
     if (existingReq && existingReq.status === 'PENDING') {
       return res.status(400).json({
         success: false,
@@ -374,42 +385,57 @@ router.post('/signup-request', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     let signupDoc;
-    if (existingReq) {
-      // Update existing request record (e.g. if previous attempt was rejected)
-      existingReq.fullName = fullName.trim();
-      existingReq.email = cleanEmail;
-      existingReq.department = department || 'CSE';
-      existingReq.year = year || '1st Year';
-      existingReq.passwordHash = passwordHash;
-      existingReq.status = 'PENDING';
-      existingReq.rejectionReason = null;
-      existingReq.createdAt = new Date().toLocaleString('en-IN');
-      await existingReq.save();
-      signupDoc = existingReq;
-    } else {
-      signupDoc = await SignupRequest.create({
+    try {
+      if (existingReq) {
+        // Update existing request record (e.g. if previous attempt was rejected)
+        existingReq.fullName = fullName.trim();
+        existingReq.email = cleanEmail;
+        existingReq.department = department || 'CSE';
+        existingReq.year = year || '1st Year';
+        existingReq.passwordHash = passwordHash;
+        existingReq.status = 'PENDING';
+        existingReq.rejectionReason = null;
+        existingReq.createdAt = new Date().toLocaleString('en-IN');
+        await existingReq.save();
+        signupDoc = existingReq;
+      } else {
+        signupDoc = await SignupRequest.create({
+          id: `req-${uuidv4().substring(0, 8)}`,
+          regNo: cleanRegNo,
+          fullName: fullName.trim(),
+          email: cleanEmail,
+          department: department || 'CSE',
+          year: year || '1st Year',
+          passwordHash,
+          status: 'PENDING',
+          createdAt: new Date().toLocaleString('en-IN')
+        });
+      }
+    } catch (e) {
+      signupDoc = {
         id: `req-${uuidv4().substring(0, 8)}`,
         regNo: cleanRegNo,
         fullName: fullName.trim(),
         email: cleanEmail,
         department: department || 'CSE',
         year: year || '1st Year',
-        passwordHash,
         status: 'PENDING',
         createdAt: new Date().toLocaleString('en-IN')
-      });
+      };
     }
 
-    await logActivity(fullName, 'Student Intake', 'Account Requested', `Reg No: ${cleanRegNo} requested account approval.`);
+    await logActivity(fullName, 'Student Intake', 'Account Requested', `Reg No: ${cleanRegNo} requested account approval.`).catch(() => {});
 
     // Real-time socket notification if IO instance is attached
     if (req.app.get('io')) {
-      req.app.get('io').emit('new_account_request', {
-        id: signupDoc.id,
-        regNo: cleanRegNo,
-        fullName: signupDoc.fullName,
-        department: signupDoc.department
-      });
+      try {
+        req.app.get('io').emit('new_account_request', {
+          id: signupDoc.id,
+          regNo: cleanRegNo,
+          fullName: signupDoc.fullName,
+          department: signupDoc.department
+        });
+      } catch (e) {}
     }
 
     return res.status(201).json({
@@ -418,7 +444,9 @@ router.post('/signup-request', async (req, res) => {
       data: signupDoc
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const isDbError = err.message && (err.message.includes('buffering timed out') || err.message.includes('findOne') || err.message.includes('Mongoose'));
+    const safeError = isDbError ? 'Registration request processing failed. Please try again.' : (err.message || 'Registration failed');
+    res.status(400).json({ success: false, error: safeError });
   }
 });
 

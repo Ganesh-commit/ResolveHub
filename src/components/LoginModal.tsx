@@ -285,7 +285,11 @@ export const LoginModal: React.FC = () => {
                 <h4 className="font-extrabold text-rose-950 dark:text-rose-100 text-xs uppercase tracking-wider">
                   Authentication Error
                 </h4>
-                <p className="mt-0.5 font-bold leading-relaxed">{errorMessage}</p>
+                <p className="mt-0.5 font-bold leading-relaxed">
+                  {errorMessage.includes('buffering timed out') || errorMessage.includes('findOne') || errorMessage.includes('Mongoose')
+                    ? (authMode === 'signup_request' ? 'Registration request processing failed. Please try again.' : 'Invalid credentials')
+                    : errorMessage}
+                </p>
               </div>
             </div>
           )}
