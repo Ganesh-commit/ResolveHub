@@ -47,6 +47,7 @@ export const SuperAdminDashboard: React.FC = () => {
     deleteAdminAccount,
     studentsList,
     toggleStudentStatus,
+    deleteStudentAccount,
     systemSettings,
     updateSettings,
     activityLogs,
@@ -1010,6 +1011,14 @@ export const SuperAdminDashboard: React.FC = () => {
                             }`}
                           >
                             {st.status === 'ACTIVE' ? 'Deactivate Account' : 'Activate Account'}
+                          </button>
+                          <button
+                            onClick={() => deleteStudentAccount(st.id)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                            title="Delete Student Account"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
                           </button>
                         </td>
                       </tr>

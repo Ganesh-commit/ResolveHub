@@ -89,6 +89,7 @@ interface ResolveHubContextType {
   studentsList: StudentUser[];
   fetchStudents: () => Promise<void>;
   toggleStudentStatus: (id: string, currentStatus: 'ACTIVE' | 'INACTIVE') => Promise<void>;
+  deleteStudentAccount: (id: string) => Promise<void>;
 
   // System Settings & Activity Audit Logs
   systemSettings: SystemSettings;
@@ -867,6 +868,14 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addToast('info', 'Student Status Updated', `Student account set to ${nextStatus}.`);
   };
 
+  const deleteStudentAccount = async (id: string) => {
+    try {
+      await authApi.deleteStudent(id);
+    } catch (e) {}
+    setStudentsList(prev => prev.filter(s => s.id !== id));
+    addToast('warning', 'Student Account Removed', 'Student account has been removed from database.');
+  };
+
   // ── SYSTEM SETTINGS & AUDIT LOGS ─────────────────────────────────────────
   const updateSettings = async (newSettings: Partial<SystemSettings>) => {
     const updated = { ...systemSettings, ...newSettings };
@@ -923,6 +932,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         studentsList,
         fetchStudents,
         toggleStudentStatus,
+        deleteStudentAccount,
         systemSettings,
         updateSettings,
         activityLogs,

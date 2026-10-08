@@ -198,6 +198,10 @@ export const authApi = {
       method: 'PATCH',
       body: JSON.stringify({ status })
     }),
+  deleteStudent: (id: string) =>
+    apiFetch(`/auth/students/${id}`, {
+      method: 'DELETE'
+    }),
 
   /** Admin Management (Super Admin) */
   getAdmins: () => apiFetch('/auth/admins'),
