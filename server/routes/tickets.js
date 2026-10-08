@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const { Ticket, uuidv4, logActivity } = require('../db');
+const { uploadAttachments } = require('../middleware/uploadAttachment');
 const { analyzeGrievanceText, checkDuplicateCluster } = require('../services/aiCategorizerService');
 
 const now = () => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -233,6 +236,7 @@ router.get('/track/:id', async (req, res) => {
         ratingFeedback: ticket.ratingFeedback,
         isReopened: ticket.isReopened,
         reopenReason: ticket.reopenReason,
+        attachments: ticket.attachments || [],
         timeline: ticket.timeline || [],
         auditLogs: ticket.auditLogs || []
       }
@@ -253,8 +257,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ── POST /api/tickets — Submit Complaint (Supports Anonymous Mode & AI) ─────
-router.post('/', async (req, res) => {
+// ── POST /api/tickets — Submit Complaint (Supports Attachments, Anonymous Mode & AI) ─────
+router.post('/', (req, res, next) => {
+  uploadAttachments.array('files', 5)(req, res, function (err) {
+    if (err) {
+      return res.status(400).json({ success: false, error: err.message || 'File upload error' });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     const {
       title,
@@ -307,6 +318,44 @@ router.post('/', async (req, res) => {
 
     const titleExtract = title || (description.length > 55 ? description.substring(0, 52) + '...' : description);
 
+    // Process Attachments (Multipart uploaded files or JSON array)
+    let processedAttachments = [];
+
+    if (req.files && req.files.length > 0) {
+      processedAttachments = req.files.map(file => {
+        const isImg = file.mimetype.startsWith('image/');
+        const isPdf = file.mimetype.includes('pdf');
+        return {
+          id: `att-${uuidv4().substring(0, 8)}`,
+          name: file.originalname,
+          originalName: file.originalname,
+          fileName: file.filename,
+          url: `/uploads/attachments/${file.filename}`,
+          mimeType: file.mimetype,
+          type: isImg ? 'image' : (isPdf ? 'pdf' : 'doc'),
+          size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          uploadedAt: timestamp
+        };
+      });
+    } else if (attachments) {
+      try {
+        const parsed = typeof attachments === 'string' ? JSON.parse(attachments) : attachments;
+        if (Array.isArray(parsed)) {
+          processedAttachments = parsed.map(a => ({
+            id: a.id || `att-${uuidv4().substring(0, 8)}`,
+            name: a.name || a.originalName || 'Attachment',
+            originalName: a.originalName || a.name || 'Attachment',
+            fileName: a.fileName || '',
+            url: a.url || (a.fileName ? `/uploads/attachments/${a.fileName}` : ''),
+            mimeType: a.mimeType || a.type || 'file',
+            type: a.type || (a.mimeType?.startsWith('image/') ? 'image' : 'file'),
+            size: a.size || '1.0 MB',
+            uploadedAt: a.uploadedAt || timestamp
+          }));
+        }
+      } catch (e) {}
+    }
+
     const newTicket = new Ticket({
       id: newId,
       title: titleExtract,
@@ -340,7 +389,7 @@ router.post('/', async (req, res) => {
       etaMinutesLeft: etaMap[urgency.toLowerCase()] || 480,
       createdAt: timestamp,
       updatedAt: timestamp,
-      attachments: (attachments || []).map(a => ({ id: uuidv4(), name: a.name, size: a.size || '1.2 MB', type: a.type || 'file' })),
+      attachments: processedAttachments,
       auditLogs: [{
         id: uuidv4(),
         timestamp: now(),
@@ -352,7 +401,7 @@ router.post('/', async (req, res) => {
     });
 
     await newTicket.save();
-    await logActivity(isAnonymous ? 'Anonymous Student' : `Student ${regNoClean}`, 'Student', 'Complaint Submitted', `Submitted Complaint ID: ${newId} (${category})`);
+    await logActivity(isAnonymous ? 'Anonymous Student' : `Student ${regNoClean}`, 'Student', 'Complaint Submitted', `Submitted Complaint ID: ${newId} (${category})`).catch(() => {});
 
     res.status(201).json({ success: true, message: `Complaint ${newId} submitted successfully!`, data: newTicket });
   } catch (err) {
@@ -502,6 +551,31 @@ router.patch('/:id/assign', async (req, res) => {
 
     await curTicket.save();
     res.json({ success: true, message: `Complaint assigned to ${agentName}`, data: curTicket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── DELETE /api/tickets/:id — Delete Complaint & Unlink Attachments ────────
+router.delete('/:id', async (req, res) => {
+  try {
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+
+    // Unlink physical attachment files from disk
+    if (ticket.attachments && Array.isArray(ticket.attachments)) {
+      ticket.attachments.forEach(att => {
+        if (att.fileName) {
+          const filePath = path.join(__dirname, '../uploads/attachments', att.fileName);
+          if (fs.existsSync(filePath)) {
+            try { fs.unlinkSync(filePath); } catch (e) {}
+          }
+        }
+      });
+    }
+
+    await Ticket.deleteOne({ _id: ticket._id });
+    res.json({ success: true, message: `Complaint ${req.params.id} deleted successfully.` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

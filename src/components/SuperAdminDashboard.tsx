@@ -41,6 +41,7 @@ export const SuperAdminDashboard: React.FC = () => {
     signupRequests,
     approveSignupRequest,
     rejectSignupRequest,
+    deleteSignupRequest,
     adminsList,
     createDeptAdmin,
     toggleAdminStatus,
@@ -938,9 +939,25 @@ export const SuperAdminDashboard: React.FC = () => {
                                 <X className="w-3.5 h-3.5" />
                                 <span>REJECT</span>
                               </button>
+                              <button
+                                onClick={() => deleteSignupRequest(req.id)}
+                                className="px-2.5 py-1.5 bg-stone-200 hover:bg-stone-300 text-slate-700 font-bold rounded-xl text-xs inline-flex items-center gap-1 cursor-pointer"
+                                title="Delete Request"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </>
                           ) : (
-                            <span className="text-xs text-slate-400 font-mono">Processed</span>
+                            <div className="inline-flex items-center gap-2">
+                              <span className="text-xs text-slate-400 font-mono">Processed</span>
+                              <button
+                                onClick={() => deleteSignupRequest(req.id)}
+                                className="px-2.5 py-1.5 bg-stone-200 hover:bg-stone-300 text-slate-700 font-bold rounded-xl text-xs inline-flex items-center gap-1 cursor-pointer"
+                                title="Delete Request Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1299,6 +1316,51 @@ export const SuperAdminDashboard: React.FC = () => {
                   {selectedComplaint.description}
                 </p>
               </div>
+
+              {/* Attachments Section */}
+              {selectedComplaint.attachments && selectedComplaint.attachments.length > 0 && (
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Attached Media & Documents</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedComplaint.attachments.map((att: any, i: number) => {
+                      const rawUrl = att.url || (att.fileName ? `http://localhost:3001/uploads/attachments/${att.fileName}` : '');
+                      const url = rawUrl.startsWith('/') ? `http://localhost:3001${rawUrl}` : rawUrl;
+                      const isImage = att.type === 'image' || att.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(att.name || att.originalName || '');
+                      const displayName = att.originalName || att.name || `Attachment ${i + 1}`;
+
+                      if (isImage && url) {
+                        return (
+                          <div key={i} className="p-2.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+                            <div className="overflow-hidden rounded-xl border border-stone-200 bg-black/5 aspect-video relative">
+                              <img src={url} alt={displayName} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-slate-800 truncate max-w-[140px]">{displayName}</span>
+                              <a href={url} target="_blank" rel="noopener noreferrer" download className="text-indigo-600 font-extrabold hover:underline">
+                                View / Download
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={i} className="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 text-xs truncate">{displayName}</p>
+                            <p className="text-[10px] text-slate-400">{att.size || 'Attachment'}</p>
+                          </div>
+                          {url && (
+                            <a href={url} download target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-indigo-900 text-white font-bold text-[10px] rounded-lg">
+                              Download
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

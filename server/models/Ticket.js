@@ -107,8 +107,13 @@ const ticketSchema = new mongoose.Schema({
   attachments: [{
     id: { type: String },
     name: { type: String },
+    originalName: { type: String },
+    fileName: { type: String },
+    url: { type: String },
+    type: { type: String },
+    mimeType: { type: String },
     size: { type: String },
-    type: { type: String }
+    uploadedAt: { type: String }
   }],
   auditLogs: [{
     id: { type: String },

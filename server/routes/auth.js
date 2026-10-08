@@ -247,6 +247,17 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ regNo: cleanRegNo });
 
     if (user) {
+      const isUserValid = await bcrypt.compare(pwd, user.passwordHash || '');
+      if (!isUserValid) {
+        user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+        if (user.failedLoginAttempts >= 5) {
+          user.lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+        await user.save();
+        await logActivity(user.regNo, 'Student', 'Failed Login', `Invalid password for Reg No: ${user.regNo}`);
+        return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      }
+
       if (user.status === 'INACTIVE') {
         return res.status(403).json({ success: false, error: 'Your student account is deactivated. Please contact Super Admin.' });
       }
@@ -257,17 +268,6 @@ router.post('/login', async (req, res) => {
           success: false,
           error: `Account temporarily locked due to 5 consecutive failed attempts. Try again in ${minutesLeft} minutes.`
         });
-      }
-
-      const isUserValid = await bcrypt.compare(pwd, user.passwordHash);
-      if (!isUserValid) {
-        user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
-        if (user.failedLoginAttempts >= 5) {
-          user.lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
-        }
-        await user.save();
-        await logActivity(user.regNo, 'Student', 'Failed Login', `Invalid password for Reg No: ${user.regNo}`);
-        return res.status(401).json({ success: false, error: 'Invalid credentials' });
       }
 
       // Successful login
@@ -307,6 +307,12 @@ router.post('/login', async (req, res) => {
     const reqItem = await SignupRequest.findOne({ regNo: cleanRegNo });
 
     if (reqItem) {
+      const isReqValid = await bcrypt.compare(pwd, reqItem.passwordHash || '');
+      if (!isReqValid) {
+        await logActivity(cleanRegNo, 'Student', 'Failed Login', `Invalid password for Reg No: ${cleanRegNo}`);
+        return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      }
+
       if (reqItem.status === 'PENDING') {
         await logActivity(cleanRegNo, 'Student', 'Failed Login', `Attempted login on PENDING request`);
         return res.status(403).json({
@@ -385,43 +391,30 @@ router.post('/signup-request', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     let signupDoc;
-    try {
-      if (existingReq) {
-        // Update existing request record (e.g. if previous attempt was rejected)
-        existingReq.fullName = fullName.trim();
-        existingReq.email = cleanEmail;
-        existingReq.department = department || 'CSE';
-        existingReq.year = year || '1st Year';
-        existingReq.passwordHash = passwordHash;
-        existingReq.status = 'PENDING';
-        existingReq.rejectionReason = null;
-        existingReq.createdAt = new Date().toLocaleString('en-IN');
-        await existingReq.save();
-        signupDoc = existingReq;
-      } else {
-        signupDoc = await SignupRequest.create({
-          id: `req-${uuidv4().substring(0, 8)}`,
-          regNo: cleanRegNo,
-          fullName: fullName.trim(),
-          email: cleanEmail,
-          department: department || 'CSE',
-          year: year || '1st Year',
-          passwordHash,
-          status: 'PENDING',
-          createdAt: new Date().toLocaleString('en-IN')
-        });
-      }
-    } catch (e) {
-      signupDoc = {
+    if (existingReq) {
+      // Update existing request record (e.g. if previous attempt was rejected)
+      existingReq.fullName = fullName.trim();
+      existingReq.email = cleanEmail;
+      existingReq.department = department || 'CSE';
+      existingReq.year = year || '1st Year';
+      existingReq.passwordHash = passwordHash;
+      existingReq.status = 'PENDING';
+      existingReq.rejectionReason = null;
+      existingReq.createdAt = new Date().toLocaleString('en-IN');
+      await existingReq.save();
+      signupDoc = existingReq;
+    } else {
+      signupDoc = await SignupRequest.create({
         id: `req-${uuidv4().substring(0, 8)}`,
         regNo: cleanRegNo,
         fullName: fullName.trim(),
         email: cleanEmail,
         department: department || 'CSE',
         year: year || '1st Year',
+        passwordHash,
         status: 'PENDING',
         createdAt: new Date().toLocaleString('en-IN')
-      };
+      });
     }
 
     await logActivity(fullName, 'Student Intake', 'Account Requested', `Reg No: ${cleanRegNo} requested account approval.`).catch(() => {});
@@ -529,6 +522,26 @@ router.post('/signup-requests/:id/reject', verifyToken, requireRole('super_admin
       success: true,
       message: `Account request for ${reqItem.regNo} rejected.`,
       data: reqItem
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── DELETE /api/auth/signup-requests/:id — Delete Account Request ─────────
+router.delete('/signup-requests/:id', verifyToken, requireRole('super_admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reqItem = await SignupRequest.findOneAndDelete({ $or: [{ id }, { regNo: id.toUpperCase() }] });
+    if (!reqItem) {
+      return res.status(404).json({ success: false, error: 'Signup request not found' });
+    }
+
+    await logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Account Request Deleted', `Deleted request for Reg No: ${reqItem.regNo}`);
+
+    res.json({
+      success: true,
+      message: `Account request for ${reqItem.regNo} deleted successfully.`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -745,6 +758,23 @@ router.patch('/students/:id/status', verifyToken, requireRole('super_admin'), as
     await logActivity(req.user.name, 'Super Admin', 'Student Status Changed', `Student ${student.regNo} set to ${status}`);
 
     res.json({ success: true, message: `Student status updated to ${status}`, data: student });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/students/:id', verifyToken, requireRole('super_admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = await User.findOneAndDelete({ $or: [{ id }, { regNo: id.toUpperCase() }] });
+    if (!student) return res.status(404).json({ success: false, error: 'Student account not found' });
+
+    // Also remove any signup request record
+    await SignupRequest.deleteMany({ regNo: student.regNo });
+
+    await logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Student Deleted', `Deleted Student ${student.fullName} (${student.regNo})`);
+
+    res.json({ success: true, message: `Student ${student.regNo} deleted successfully.` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

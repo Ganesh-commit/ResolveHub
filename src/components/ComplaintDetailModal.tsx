@@ -6,6 +6,7 @@ import { StatusTimelineStepper } from './StatusTimelineStepper';
 export const ComplaintDetailModal: React.FC = () => {
   const { selectedComplaint, setSelectedComplaint, addToast } = useResolveHub();
   const [commentText, setCommentText] = useState('');
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [comments, setComments] = useState<{ id: string; author: string; text: string; date: string }[]>([
     {
       id: 'c1',
@@ -105,22 +106,76 @@ export const ComplaintDetailModal: React.FC = () => {
           </div>
 
           {/* Attachments Section */}
-          {selectedComplaint.attachments && selectedComplaint.attachments.length > 0 && (
-            <div>
-              <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                Attached Media & Evidence
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedComplaint.attachments.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-stone-100 p-2.5 rounded-xl border border-stone-200 text-xs text-slate-700">
-                    <Paperclip className="w-4 h-4 text-emerald-700" />
-                    <span className="font-semibold">{file.name}</span>
-                    <span className="text-[10px] text-slate-400">({file.size})</span>
-                  </div>
-                ))}
+          <div>
+            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+              Attached Media & Evidence
+            </h4>
+            {!selectedComplaint.attachments || selectedComplaint.attachments.length === 0 ? (
+              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 text-slate-400 text-xs text-center font-medium">
+                No attachments uploaded for this complaint.
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {selectedComplaint.attachments.map((att: any, i: number) => {
+                  const rawUrl = att.url || (att.fileName ? `http://localhost:3001/uploads/attachments/${att.fileName}` : '');
+                  const url = rawUrl.startsWith('/') ? `http://localhost:3001${rawUrl}` : rawUrl;
+                  const isImage = att.type === 'image' || att.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(att.name || att.originalName || '');
+                  const isPdf = att.type === 'pdf' || att.mimeType?.includes('pdf') || /\.pdf$/i.test(att.name || att.originalName || '');
+                  const displayName = att.originalName || att.name || `Attachment ${i + 1}`;
+
+                  if (isImage && url) {
+                    return (
+                      <div key={i} className="group relative p-2.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+                        <div 
+                          onClick={() => setLightboxImage(url)} 
+                          className="cursor-pointer overflow-hidden rounded-xl border border-stone-200 bg-black/5 aspect-video relative group-hover:opacity-90 transition-opacity"
+                        >
+                          <img src={url} alt={displayName} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold gap-1">
+                            Preview
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-800 truncate max-w-[140px]">{displayName}</span>
+                          <a href={url} target="_blank" rel="noopener noreferrer" download className="text-indigo-600 font-extrabold hover:underline">
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={i} className="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl">
+                          {isPdf ? <Paperclip className="w-4 h-4 text-rose-600" /> : <Paperclip className="w-4 h-4 text-indigo-600" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-800 text-xs truncate">{displayName}</p>
+                          <p className="text-[10px] text-slate-400">{att.size || 'Attachment'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {url ? (
+                          <>
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-stone-200 hover:bg-stone-300 text-slate-800 font-bold text-[10px] rounded-lg">
+                              View
+                            </a>
+                            <a href={url} download target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-indigo-900 text-white font-bold text-[10px] rounded-lg">
+                              Download
+                            </a>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-mono">{att.size || 'Uploaded'}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Discussion & Updates Log */}
           <div className="border-t border-stone-100 pt-5">
@@ -160,6 +215,27 @@ export const ComplaintDetailModal: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Lightbox Image Preview Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-4 animate-fade-in"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLightboxImage(null);
+          }}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-10 right-0 text-white font-bold text-sm bg-stone-800 p-2 rounded-full hover:bg-stone-700 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img src={lightboxImage} alt="Attachment Preview" className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

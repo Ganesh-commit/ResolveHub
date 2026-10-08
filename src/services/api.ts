@@ -61,24 +61,16 @@ export const ticketApi = {
   /** Fetch one ticket by ID */
   getOne: (id: string) => apiFetch(`/tickets/${id}`).then(res => res.data || res),
 
-  /** Submit a new complaint */
-  create: (data: {
-    title?: string;
-    category: string;
-    department?: string;
-    urgency?: string;
-    location?: string;
-    description: string;
-    studentRegNo?: string;
-    studentName?: string;
-    studentEmail?: string;
-    studentDept?: string;
-    attachments?: Array<{ name: string; size: string; type: string }>;
-  }) =>
+  /** Submit a new complaint (supports JSON or FormData with file attachments) */
+  create: (data: FormData | Record<string, any>) =>
     apiFetch('/tickets', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }).then(res => res.data || res),
+
+  /** Delete a complaint and its attachments */
+  delete: (id: string) =>
+    apiFetch(`/tickets/${id}`, { method: 'DELETE' }).then(res => res.data || res),
 
   /** Update ticket status & remarks */
   updateStatus: (id: string, status: string, responseRemarks?: string, updatedBy?: string, role?: string) =>
@@ -154,6 +146,12 @@ export const authApi = {
     apiFetch(`/auth/signup-requests/${id}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    }),
+
+  /** Admin delete signup request */
+  deleteSignupRequest: (id: string) =>
+    apiFetch(`/auth/signup-requests/${id}`, {
+      method: 'DELETE',
     }),
 
   /** Upload profile photo avatar */

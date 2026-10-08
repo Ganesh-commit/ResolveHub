@@ -76,6 +76,7 @@ interface ResolveHubContextType {
   }) => Promise<{ success: boolean; message?: string }>;
   approveSignupRequest: (requestId: string) => Promise<void>;
   rejectSignupRequest: (requestId: string, reason?: string) => Promise<void>;
+  deleteSignupRequest: (requestId: string) => Promise<void>;
   checkSignupStatus: (regNo: string) => { status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NOT_FOUND'; reason?: string };
 
   // Admin Management (Super Admin)
@@ -892,6 +893,16 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addToast('warning', 'Signup Request Rejected', `Request for ${reqItem?.regNo || requestId} rejected.`);
   };
 
+  const deleteSignupRequest = async (requestId: string) => {
+    const reqItem = signupRequests.find(r => r.id === requestId);
+    try {
+      await authApi.deleteSignupRequest(requestId);
+    } catch (e) {}
+
+    setSignupRequests(prev => prev.filter(r => r.id !== requestId));
+    addToast('warning', 'Request Deleted', `Signup request for ${reqItem?.regNo || requestId} removed.`);
+  };
+
   // ── ADMIN MANAGEMENT ACTIONS ──────────────────────────────────────────────
   const createDeptAdmin = async (data: { name: string; username: string; password: string; department: string }): Promise<{ success: boolean; message?: string }> => {
     const cleanUsername = data.username.trim().toLowerCase();
@@ -990,6 +1001,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         submitSignupRequest,
         approveSignupRequest,
         rejectSignupRequest,
+        deleteSignupRequest,
         checkSignupStatus,
         adminsList,
         fetchAdmins,

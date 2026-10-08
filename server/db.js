@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-mongoose.set('bufferCommands', false);
+// Enable Mongoose command buffering for seamless async connection
 const bcrypt = require('bcryptjs');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -64,10 +64,6 @@ async function connectDB() {
 // ── Database Auto-Seeder ─────────────────────────────────────────────────
 async function seedInitialData() {
   try {
-    // Clear student 241FA07011 to allow fresh student registration testing
-    await User.deleteMany({ regNo: '241FA07011' }).catch(() => {});
-    await SignupRequest.deleteMany({ regNo: '241FA07011' }).catch(() => {});
-
     // 1. Seed System Settings
     const settingCount = await SystemSetting.countDocuments();
     if (settingCount === 0) {
@@ -105,9 +101,9 @@ async function seedInitialData() {
       });
     }
 
-    // 2. Seed Super Admin via seedAdmin helper
-    const seedAdmin = require('./scripts/seedAdmin');
-    await seedAdmin();
+    // 2. Seed Super Admin and Pre-Approved Demo Student via seed script
+    const seedDatabase = require('./scripts/seed');
+    await seedDatabase();
 
   } catch (err) {
     console.error('Error during MongoDB initial data seeding:', err);
