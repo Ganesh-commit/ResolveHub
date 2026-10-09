@@ -17,11 +17,13 @@ export const MyComplaintsSection: React.FC = () => {
   const regNo = authUser?.regNo || authUser?.username || '';
 
   // Filter complaints strictly belonging to this logged-in student
-  const studentComplaints = complaints.filter(c => {
-    if (!regNo) return true;
-    const cReg = c.complainant?.regNo || '';
-    const cBy = c.submittedBy || '';
-    return cReg.toUpperCase() === regNo.toUpperCase() || cBy.toUpperCase().includes(regNo.toUpperCase());
+  const studentComplaints = (complaints || []).filter(c => {
+    if (!c) return false;
+    const targetReg = String(regNo || '').toUpperCase();
+    if (!targetReg) return true;
+    const cReg = String(c.complainant?.regNo || '').toUpperCase();
+    const cBy = String(c.submittedBy || '').toUpperCase();
+    return cReg === targetReg || cBy.includes(targetReg);
   });
 
   const [searchTerm, setSearchTerm] = useState('');

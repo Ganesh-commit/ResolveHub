@@ -1,5 +1,6 @@
 import React from 'react';
 import { ResolveHubProvider, useResolveHub } from './context/ResolveHubContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { MyComplaintsSection } from './components/MyComplaintsSection';
@@ -185,8 +186,10 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <ResolveHubProvider>
-      <AppContent />
-    </ResolveHubProvider>
+    <ErrorBoundary>
+      <ResolveHubProvider>
+        <AppContent />
+      </ResolveHubProvider>
+    </ErrorBoundary>
   );
 }

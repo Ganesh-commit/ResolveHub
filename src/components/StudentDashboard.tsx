@@ -36,10 +36,13 @@ export const StudentDashboard: React.FC = () => {
   };
 
   // Filter complaints belonging strictly to logged-in student
-  const myComplaints = complaints.filter(c => {
-    const cReg = c.complainant?.regNo || '';
-    const cBy = c.submittedBy || '';
-    return cReg.toUpperCase() === regNo.toUpperCase() || cBy.toUpperCase().includes(regNo.toUpperCase());
+  const myComplaints = (complaints || []).filter(c => {
+    if (!c) return false;
+    const cReg = String(c.complainant?.regNo || '').toUpperCase();
+    const cBy = String(c.submittedBy || '').toUpperCase();
+    const targetReg = String(regNo || '').toUpperCase();
+    if (!targetReg) return false;
+    return cReg === targetReg || cBy.includes(targetReg);
   });
 
   // Statistics calculation
