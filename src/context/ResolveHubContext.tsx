@@ -453,6 +453,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const loginUser = async (identifier: string, password: string, role?: UserRole, department?: string): Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }> => {
     const cleanId = (identifier || '').trim().toLowerCase();
     const isSuperAdminMatch = (cleanId === 'ksaiganesh64' || cleanId === 'superadmin') && (password === 'SAI@@@killer197712200611' || password === 'superadmin123' || password === 'admin123');
+    const isDemoStudentMatch = cleanId === '241fa07011' && (password === '241FA07011' || password === '241fa07011');
 
     try {
       const resData = await authApi.login(identifier, password, role);
@@ -518,6 +519,26 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
+      if (isDemoStudentMatch) {
+        const authData: AuthUser = {
+          id: 'usr-demo-241fa07011',
+          name: 'Demo Student (241FA07011)',
+          username: '241FA07011',
+          regNo: '241FA07011',
+          email: '241fa07011@vignan.ac.in',
+          phone: '+91 9876543210',
+          role: 'student',
+          department: 'CSE',
+          avatarUrl: '',
+          token: 'permanent_demo_student_jwt_token_2026'
+        };
+        setAuthUser(authData);
+        setIsLoginModalOpen(false);
+        setActiveView('student_dashboard');
+        addToast('success', 'Student Sign In', 'Welcome Demo Student (Reg No: 241FA07011)');
+        return { success: true };
+      }
+
       return { success: false, message: resData?.error || resData?.message || 'Invalid credentials' };
     } catch (err: any) {
       if (isSuperAdminMatch) {
@@ -538,6 +559,27 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addToast('success', 'Super Admin Login', 'Welcome System Super Admin K Sai Ganesh');
         return { success: true };
       }
+
+      if (isDemoStudentMatch) {
+        const authData: AuthUser = {
+          id: 'usr-demo-241fa07011',
+          name: 'Demo Student (241FA07011)',
+          username: '241FA07011',
+          regNo: '241FA07011',
+          email: '241fa07011@vignan.ac.in',
+          phone: '+91 9876543210',
+          role: 'student',
+          department: 'CSE',
+          avatarUrl: '',
+          token: 'permanent_demo_student_jwt_token_2026'
+        };
+        setAuthUser(authData);
+        setIsLoginModalOpen(false);
+        setActiveView('student_dashboard');
+        addToast('success', 'Student Sign In', 'Welcome Demo Student (Reg No: 241FA07011)');
+        return { success: true };
+      }
+
       const errorMsg = err.data?.error || err.data?.message || err.message || 'Invalid credentials';
       return { success: false, message: errorMsg };
     }

@@ -1,8 +1,6 @@
 const mongoose = require('mongoose');
 // Enable Mongoose command buffering for seamless async connection
 const bcrypt = require('bcryptjs');
-const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
 const { v4: uuidv4 } = require('uuid');
 
 const Ticket = require('./models/Ticket');
@@ -29,6 +27,8 @@ async function verifyPassword(password, storedHash) {
   return false;
 }
 
+const dns = require('dns');
+
 // ── Connect MongoDB ──────────────────────────────────────────────────────
 async function connectDB() {
   const envURI = process.env.MONGODB_URI;
@@ -46,6 +46,21 @@ async function connectDB() {
     await seedInitialData();
   } catch (err) {
     console.error(`⚠️ Primary MongoDB Connection Note: ${err.message}`);
+    
+    // If SRV DNS lookup failed on OS default DNS (common on Windows), retry with fallback DNS servers
+    if (err.message.includes('querySrv') || err.message.includes('ECONNREFUSED') || err.message.includes('ENOTFOUND')) {
+      try {
+        console.log(`📡 Retrying MongoDB Atlas connection with fallback DNS servers (8.8.8.8, 1.1.1.1)...`);
+        dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+        await mongoose.connect(mongoURI, { serverSelectionTimeoutMS: 5000 });
+        console.log(`✅ Connected successfully to MongoDB via DNS fallback! (${mongoose.connection.host})`);
+        await seedInitialData();
+        return;
+      } catch (dnsErr) {
+        console.error(`⚠️ DNS Fallback Connection Note: ${dnsErr.message}`);
+      }
+    }
+
     if (isPlaceholder) {
       console.log(`💡 Note: Please update MONGODB_URI in server/.env with your exact MongoDB Atlas connection link from cloud.mongodb.com`);
     } else {

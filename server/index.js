@@ -1,7 +1,5 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const express = require('express');
 const cors = require('cors');
@@ -75,12 +73,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ── Login Rate Limiter (5 attempts per 15 minutes) ──────────────────────────
+// ── Login Rate Limiter (Relaxed limit for seamless user experience) ──────────
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // 20 requests per IP per 15 min window
+  max: 300, // 300 requests per IP per 15 min window
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === 'localhost',
   message: {
     success: false,
     error: 'Too many login attempts from this IP. Please try again after 15 minutes.'
