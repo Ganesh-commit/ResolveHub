@@ -35,14 +35,14 @@ interface ResolveHubContextType {
   authUser: AuthUser | null;
   userLoggedIn: boolean;
   userRole: UserRole;
-  loginUser: (identifier: string, password: string, role?: UserRole, department?: string) => Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }>;
+  loginUser: (identifier: string, password: string, role?: UserRole, department?: string) => Promise<{ success: boolean; message?: string; code?: string; mustChangePassword?: boolean; regNo?: string }>;
   logoutUser: () => void;
   updateAuthUserAvatar: (avatarUrl: string) => void;
   updateAuthUserProfile: (data: Partial<AuthUser>) => void;
   
   // Legacy / Student Auth Wrappers
   currentUserRegNo: string | null;
-  loginWithRegNo: (regNo: string, password: string) => Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }>;
+  loginWithRegNo: (regNo: string, password: string) => Promise<{ success: boolean; message?: string; code?: string; mustChangePassword?: boolean; regNo?: string }>;
   logout: () => void;
 
   // Complaints & Activity
@@ -450,10 +450,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // ── AUTHENTICATION METHODS (STRICT BACKEND WITH SUPER ADMIN FAILSAFE) ────────────
-  const loginUser = async (identifier: string, password: string, role?: UserRole, department?: string): Promise<{ success: boolean; message?: string; mustChangePassword?: boolean; regNo?: string }> => {
+  const loginUser = async (identifier: string, password: string, role?: UserRole, department?: string): Promise<{ success: boolean; message?: string; code?: string; mustChangePassword?: boolean; regNo?: string }> => {
     const cleanId = (identifier || '').trim().toLowerCase();
     const isSuperAdminMatch = (cleanId === 'ksaiganesh64' || cleanId === 'superadmin') && (password === 'SAI@@@killer197712200611' || password === 'superadmin123' || password === 'admin123');
-    const isDemoStudentMatch = cleanId === '241fa07011' && (password === '241FA07011' || password === '241fa07011');
 
     try {
       const resData = await authApi.login(identifier, password, role);
@@ -519,27 +518,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      if (isDemoStudentMatch) {
-        const authData: AuthUser = {
-          id: 'usr-demo-241fa07011',
-          name: 'Demo Student (241FA07011)',
-          username: '241FA07011',
-          regNo: '241FA07011',
-          email: '241fa07011@vignan.ac.in',
-          phone: '+91 9876543210',
-          role: 'student',
-          department: 'CSE',
-          avatarUrl: '',
-          token: 'permanent_demo_student_jwt_token_2026'
-        };
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('student_dashboard');
-        addToast('success', 'Student Sign In', 'Welcome Demo Student (Reg No: 241FA07011)');
-        return { success: true };
-      }
-
-      return { success: false, message: resData?.error || resData?.message || 'Invalid credentials' };
+      return { success: false, code: resData?.code, message: resData?.error || resData?.message || 'Invalid credentials' };
     } catch (err: any) {
       if (isSuperAdminMatch) {
         const authData: AuthUser = {
@@ -560,28 +539,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      if (isDemoStudentMatch) {
-        const authData: AuthUser = {
-          id: 'usr-demo-241fa07011',
-          name: 'Demo Student (241FA07011)',
-          username: '241FA07011',
-          regNo: '241FA07011',
-          email: '241fa07011@vignan.ac.in',
-          phone: '+91 9876543210',
-          role: 'student',
-          department: 'CSE',
-          avatarUrl: '',
-          token: 'permanent_demo_student_jwt_token_2026'
-        };
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('student_dashboard');
-        addToast('success', 'Student Sign In', 'Welcome Demo Student (Reg No: 241FA07011)');
-        return { success: true };
-      }
-
       const errorMsg = err.data?.error || err.data?.message || err.message || 'Invalid credentials';
-      return { success: false, message: errorMsg };
+      const errorCode = err.data?.code || (errorMsg.includes("don't have an account") ? 'ACCOUNT_NOT_FOUND' : undefined);
+      return { success: false, code: errorCode, message: errorMsg };
     }
   };
 

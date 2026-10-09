@@ -66,28 +66,7 @@
 
 ### 🛡️ 1. Password-First Security Authentication
 - **Secure Password-First Verification**: On student login attempts, the backend verifies the submitted password against the stored bcrypt hash **FIRST** before inspecting account status (`PENDING`, `REJECTED`, `INACTIVE`).
-- **Zero Information Leakage**: Unauthenticated login attempts with wrong passwords return standard `401 Invalid credentials`, preventing registration number enumeration or unauthenticated status probing.
-- **Seeded Demo Student Account**: Idempotent seeding script creates pre-approved active demo student account (`241FA07011` / `241FA07011`).
-
-### 🏛️ 2. Super Admin "Student Requests" Verification Hub
-- **Manage Dropdown Menu Option**: Direct menu link inside the Super Admin top navigation bar to navigate straight to **Student Requests**.
-- **Categorized Sub-Tabs**:
-  - ⏳ **Pending Requests**: Unprocessed registration requests awaiting Super Admin verification.
-  - ✅ **Accepted / Approved**: Activated student accounts.
-  - ❌ **Rejected Requests**: Denied registration attempts with rejection reason notes.
-  - 📋 **All Requests**: Unified listing of all intake requests.
-  - 🎓 **Active Students Database**: Complete student registry with password reset, status toggle, and account deletion controls.
-- **Real-Time Socket.io Alerts**: Instant push notifications when a new student submits a registration request.
-
-### 📎 3. Complaint Attachments Pipeline & Image Lightbox
-- **Multipart Upload Middleware**: Multer-backed storage for up to 5 files per complaint (images, PDFs, DOC, DOCX up to 5MB each).
-- **Interactive Lightbox Preview**: High-resolution image preview modal overlay in both Student and Super Admin complaint detail views.
-- **Document Download**: Direct view and download buttons for attached PDF and Word documents.
-- **Disk Cleanup**: Physical deletion of uploaded attachments from `/uploads/attachments/` when a ticket is deleted.
-
-### ⚡ 4. Automatic SLA Escalation Worker
-- **Background Worker**: Evaluates ticket age against category SLA thresholds (Critical: 2 hrs, High: 4 hrs, Medium: 8 hrs, Low: 24 hrs).
-- **Auto-Escalation**: Automatically escalates unhandled tickets and emits real-time alerts.
+- **Student Self-Registration & Approval**: Students register using their registration number and details. Requests undergo Super Admin approval.
 
 ---
 
@@ -96,7 +75,7 @@
 | Role | Username / Reg No | Password | Permissions & Rights |
 | :--- | :--- | :--- | :--- |
 | 👑 **Super Admin** | `ksaiganesh64` | `SAI@@@killer197712200611` | Complete system control, student request verification, admin creation, system settings & audit logs |
-| 🎓 **Demo Student** | `241FA07011` | `241FA07011` | Submit grievances, attach media evidence, track live progress, view student dashboard |
+| 🎓 **Student Account** | Registered Reg No | Student Password | Submit grievances, attach media evidence, track live progress, view student dashboard |
 | 🏢 **Dept Admin (CSE)** | `dept_cse` | `admin123` | Department-scoped inbox, assign field technicians, update status & audit remarks |
 
 ---

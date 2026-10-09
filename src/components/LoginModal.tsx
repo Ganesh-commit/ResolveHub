@@ -74,10 +74,13 @@ export const LoginModal: React.FC = () => {
 
   const pwdStrength = getPasswordStrength(signupPassword);
 
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+
   // Handle Student Login submission
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setErrorCode(null);
     setSuccessMessage(null);
 
     setLoading(true);
@@ -94,11 +97,13 @@ export const LoginModal: React.FC = () => {
     }
 
     if (!res.success) {
+      setErrorCode(res.code || null);
       setErrorMessage(res.message || 'Invalid credentials');
     } else {
       setStudentRegNo('');
       setStudentPassword('');
       setErrorMessage(null);
+      setErrorCode(null);
     }
   };
 
@@ -281,7 +286,7 @@ export const LoginModal: React.FC = () => {
           {errorMessage && (
             <div className="mb-5 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs flex items-start gap-3 animate-shake">
               <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <h4 className="font-extrabold text-rose-950 dark:text-rose-100 text-xs uppercase tracking-wider">
                   Authentication Error
                 </h4>
@@ -290,6 +295,21 @@ export const LoginModal: React.FC = () => {
                     ? (authMode === 'signup_request' ? 'Registration request processing failed. Please try again.' : 'Invalid credentials')
                     : errorMessage}
                 </p>
+                {(errorCode === 'ACCOUNT_NOT_FOUND' || errorMessage.includes("don't have an account")) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSignupRegNo(studentRegNo.trim().toUpperCase());
+                      setAuthMode('signup_request');
+                      setErrorMessage(null);
+                      setErrorCode(null);
+                    }}
+                    className="mt-3 px-4 py-2 bg-[#8a2410] hover:bg-[#6f1b0c] text-white font-extrabold rounded-xl text-xs inline-flex items-center gap-2 transition-all cursor-pointer shadow-sm uppercase tracking-wider"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Register now</span>
+                  </button>
+                )}
               </div>
             </div>
           )}

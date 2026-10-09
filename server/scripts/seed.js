@@ -7,9 +7,6 @@ async function seedDatabase() {
   const superUsername = (process.env.SUPERADMIN_USERNAME || 'ksaiganesh64').trim().toLowerCase();
   const superPassword = process.env.SUPERADMIN_PASSWORD || 'SAI@@@killer197712200611';
 
-  const demoRegNo = (process.env.DEMO_STUDENT_REG_NO || '241FA07011').trim().toUpperCase();
-  const demoPassword = process.env.DEMO_STUDENT_PASSWORD || '241FA07011';
-
   const envURI = process.env.MONGODB_URI;
   const isPlaceholder = !envURI || envURI.includes('YOUR_USERNAME') || envURI.includes('cluster0.xxxxx');
   const primaryURI = isPlaceholder ? 'mongodb://127.0.0.1:27017/resolvehub' : envURI;
@@ -17,6 +14,8 @@ async function seedDatabase() {
   let closeDb = false;
   if (mongoose.connection.readyState !== 1) {
     try {
+      const dns = require('dns');
+      dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
       await mongoose.connect(primaryURI, { serverSelectionTimeoutMS: 3000 });
       closeDb = true;
     } catch (e) {
@@ -31,9 +30,6 @@ async function seedDatabase() {
   }
 
   const Staff = require('../models/Staff');
-  const User = require('../models/User');
-  const SignupRequest = require('../models/SignupRequest');
-  const { v4: uuidv4 } = require('uuid');
 
   // 1. Seed / Update Super Admin Account (Idempotent)
   let existingAdmin = await Staff.findOne({ username: superUsername });
@@ -63,65 +59,6 @@ async function seedDatabase() {
     } else {
       console.log(`ℹ️ Super Admin account is up to date: ${superUsername}`);
     }
-  }
-
-  // 2. Seed / Update Pre-Approved Demo Student Account (Idempotent)
-  let demoUser = await User.findOne({ regNo: demoRegNo });
-  const demoHash = await bcrypt.hash(demoPassword, 10);
-
-  if (!demoUser) {
-    demoUser = await User.create({
-      id: `usr-${uuidv4().substring(0, 8)}`,
-      regNo: demoRegNo,
-      fullName: 'Sai Ganesh (Demo Student)',
-      email: `${demoRegNo.toLowerCase()}@vignan.ac.in`,
-      phone: '9876543210',
-      department: 'Information Technology (IT)',
-      year: '3rd Year',
-      passwordHash: demoHash,
-      mustChangePassword: false,
-      status: 'ACTIVE',
-      activatedAt: new Date().toLocaleString('en-IN')
-    });
-    console.log(`✅ Pre-approved Demo Student account created: ${demoRegNo}`);
-  } else {
-    const isDemoPasswordSame = await bcrypt.compare(demoPassword, demoUser.passwordHash);
-    let updated = false;
-
-    if (!isDemoPasswordSame) {
-      demoUser.passwordHash = demoHash;
-      updated = true;
-    }
-    if (demoUser.status !== 'ACTIVE') {
-      demoUser.status = 'ACTIVE';
-      updated = true;
-    }
-    if (updated) {
-      await demoUser.save();
-      console.log(`🔄 Demo Student account updated from .env: ${demoRegNo}`);
-    } else {
-      console.log(`ℹ️ Demo Student account is up to date: ${demoRegNo}`);
-    }
-  }
-
-  // Also ensure an APPROVED SignupRequest exists for demo student for consistency
-  let demoReq = await SignupRequest.findOne({ regNo: demoRegNo });
-  if (!demoReq) {
-    await SignupRequest.create({
-      id: `req-${uuidv4().substring(0, 8)}`,
-      regNo: demoRegNo,
-      fullName: demoUser.fullName,
-      email: demoUser.email,
-      department: demoUser.department,
-      year: demoUser.year,
-      passwordHash: demoUser.passwordHash,
-      status: 'APPROVED',
-      createdAt: new Date().toLocaleString('en-IN')
-    });
-  } else if (demoReq.status !== 'APPROVED' || demoReq.passwordHash !== demoUser.passwordHash) {
-    demoReq.status = 'APPROVED';
-    demoReq.passwordHash = demoUser.passwordHash;
-    await demoReq.save();
   }
 
   if (closeDb) {

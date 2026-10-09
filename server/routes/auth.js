@@ -77,7 +77,7 @@ router.get('/me', async (req, res) => {
     const regNo = decoded?.regNo || req.query.regNo;
     const username = decoded?.username || req.query.username;
 
-    // Instant Super Admin check for /me to prevent DB buffering timeouts
+    // Instant Super Admin check for /me
     if (decoded?.role === 'super_admin' || username?.toLowerCase() === 'ksaiganesh64' || userId === 'SA-001') {
       return res.json({
         success: true,
@@ -98,8 +98,6 @@ router.get('/me', async (req, res) => {
     }
 
     let user = null;
-    let isStaff = false;
-
     if (userId) {
       user = await Staff.findOne({ id: userId }).lean() || await User.findOne({ id: userId }).lean();
     } else if (regNo) {
@@ -137,21 +135,23 @@ router.get('/me', async (req, res) => {
 
 // ── POST /api/auth/login — Enterprise Login Handler ──────────────────────────
 router.post('/login', async (req, res) => {
+  const startTime = Date.now();
   try {
     const { username, regNo, password } = req.body;
     const loginIdentifier = (regNo || username || '').trim();
-    // Do not trim password to preserve case sensitivity and trailing spaces if any
     const pwd = password || '';
 
     if (!loginIdentifier || !pwd) {
-      await logActivity('Anonymous', 'Guest', 'Failed Login', 'Empty login credentials submitted');
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      setImmediate(() => {
+        logActivity('Anonymous', 'Guest', 'Failed Login', 'Empty login credentials submitted').catch(() => {});
+      });
+      return res.status(401).json({ success: false, code: 'WRONG_PASSWORD', error: 'Incorrect password.' });
     }
 
-    // 1. Direct Instant Super Admin Check (0ms response)
     const lowerId = loginIdentifier.toLowerCase();
     const cleanRegNo = loginIdentifier.toUpperCase();
 
+    // 1. Direct Instant Super Admin Check
     const isSuperAdminCreds = (
       (lowerId === 'ksaiganesh64' || lowerId === 'superadmin') &&
       (pwd === 'SAI@@@killer197712200611' || pwd === 'superadmin123' || pwd === 'admin123')
@@ -170,8 +170,11 @@ router.post('/login', async (req, res) => {
         avatarUrl: ''
       };
       const token = generateJWT(superAdminUser);
-      logActivity('ksaiganesh64', 'Super Admin', 'Admin Sign In', 'Signed in successfully').catch(() => {});
+      setImmediate(() => {
+        logActivity('ksaiganesh64', 'Super Admin', 'Admin Sign In', 'Signed in successfully').catch(() => {});
+      });
 
+      res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
       return res.json({
         success: true,
         data: {
@@ -181,40 +184,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 2. Direct Instant Demo Student Check (0ms response)
-    const envDemoPass = process.env.DEMO_STUDENT_PASSWORD || '241FA07011';
-    const isDemoStudentCreds = (
-      cleanRegNo === '241FA07011' &&
-      (pwd === '241FA07011' || pwd === envDemoPass)
-    );
-
-    if (isDemoStudentCreds) {
-      const demoUser = {
-        id: 'usr-demo-241fa07011',
-        regNo: '241FA07011',
-        name: 'Demo Student (241FA07011)',
-        fullName: 'Demo Student (241FA07011)',
-        email: '241fa07011@vignan.ac.in',
-        phone: '+91 9876543210',
-        department: 'CSE',
-        year: '1st Year',
-        role: 'student',
-        avatarUrl: ''
-      };
-      const token = generateJWT(demoUser);
-      logActivity('241FA07011', 'Student', 'Student Sign In', 'Demo Student signed in successfully').catch(() => {});
-
-      return res.json({
-        success: true,
-        mustChangePassword: false,
-        data: {
-          ...demoUser,
-          token
-        }
-      });
-    }
-
-    // 3. Parallel MongoDB Execution (Executes Staff, User, and SignupRequest lookups concurrently)
+    // 2. Parallel MongoDB Execution for Staff, User, and SignupRequest
     const [staffDoc, userDoc, reqDoc] = await Promise.all([
       Staff.findOne({ username: lowerId }).lean().catch(() => null),
       User.findOne({ regNo: cleanRegNo }).lean().catch(() => null),
@@ -224,21 +194,25 @@ router.post('/login', async (req, res) => {
     // Check Staff account first
     if (staffDoc) {
       if (staffDoc.status === 'INACTIVE') {
-        return res.status(403).json({ success: false, error: 'This Admin account has been deactivated by Super Admin.' });
+        return res.status(403).json({ success: false, code: 'ACCOUNT_DEACTIVATED', error: 'This Admin account has been deactivated by Super Admin.' });
       }
 
       if (staffDoc.lockoutUntil && new Date(staffDoc.lockoutUntil) > new Date()) {
         const minutesLeft = Math.ceil((new Date(staffDoc.lockoutUntil).getTime() - Date.now()) / 60000);
         return res.status(429).json({
           success: false,
+          code: 'LOCKED_OUT',
           error: `Account temporarily locked due to 5 consecutive failed attempts. Try again in ${minutesLeft} minutes.`
         });
       }
 
       const isStaffValid = await bcrypt.compare(pwd, staffDoc.passwordHash || '');
       if (!isStaffValid) {
-        logActivity(staffDoc.username, staffDoc.role === 'super_admin' ? 'Super Admin' : 'Department Admin', 'Failed Login', 'Invalid password attempt').catch(() => {});
-        return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        setImmediate(() => {
+          logActivity(staffDoc.username, staffDoc.role === 'super_admin' ? 'Super Admin' : 'Department Admin', 'Failed Login', 'Invalid password attempt').catch(() => {});
+        });
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+        return res.status(401).json({ success: false, code: 'WRONG_PASSWORD', error: 'Incorrect password.' });
       }
 
       const token = generateJWT({
@@ -249,8 +223,11 @@ router.post('/login', async (req, res) => {
         department: staffDoc.department
       });
 
-      logActivity(staffDoc.name, staffDoc.role === 'super_admin' ? 'Super Admin' : 'Department Admin', 'Admin Sign In', 'Signed in successfully').catch(() => {});
+      setImmediate(() => {
+        logActivity(staffDoc.name, staffDoc.role === 'super_admin' ? 'Super Admin' : 'Department Admin', 'Admin Sign In', 'Signed in successfully').catch(() => {});
+      });
 
+      res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
       return res.json({
         success: true,
         data: {
@@ -267,23 +244,41 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check Student account
+    // Check Student account (User)
     if (userDoc) {
-      const isUserValid = await bcrypt.compare(pwd, userDoc.passwordHash || '');
-      if (!isUserValid) {
-        logActivity(userDoc.regNo, 'Student', 'Failed Login', `Invalid password for Reg No: ${userDoc.regNo}`).catch(() => {});
-        return res.status(401).json({ success: false, error: 'Invalid credentials' });
-      }
-
       if (userDoc.status === 'INACTIVE') {
-        return res.status(403).json({ success: false, error: 'Your student account is deactivated. Please contact Super Admin.' });
+        return res.status(403).json({ success: false, code: 'ACCOUNT_DEACTIVATED', error: 'Your student account is deactivated. Please contact Super Admin.' });
       }
 
       if (userDoc.lockoutUntil && new Date(userDoc.lockoutUntil) > new Date()) {
         const minutesLeft = Math.ceil((new Date(userDoc.lockoutUntil).getTime() - Date.now()) / 60000);
         return res.status(429).json({
           success: false,
+          code: 'LOCKED_OUT',
           error: `Account temporarily locked due to 5 consecutive failed attempts. Try again in ${minutesLeft} minutes.`
+        });
+      }
+
+      // Single bcrypt compare execution
+      const isUserValid = await bcrypt.compare(pwd, userDoc.passwordHash || '');
+      if (!isUserValid) {
+        const newAttempts = (userDoc.failedAttempts || 0) + 1;
+        const setObj = { failedAttempts: newAttempts };
+        if (newAttempts >= 5) {
+          setObj.lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+        setImmediate(() => {
+          User.updateOne({ _id: userDoc._id }, { $set: setObj }).catch(() => {});
+          logActivity(userDoc.regNo, 'Student', 'Failed Login', `Incorrect password for Reg No: ${userDoc.regNo}`).catch(() => {});
+        });
+
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+        return res.status(401).json({ success: false, code: 'WRONG_PASSWORD', error: 'Incorrect password.' });
+      }
+
+      if (userDoc.failedAttempts > 0 || userDoc.lockoutUntil) {
+        setImmediate(() => {
+          User.updateOne({ _id: userDoc._id }, { $set: { failedAttempts: 0, lockoutUntil: null } }).catch(() => {});
         });
       }
 
@@ -295,8 +290,11 @@ router.post('/login', async (req, res) => {
         department: userDoc.department
       });
 
-      logActivity(userDoc.fullName, 'Student', 'Student Sign In', `Reg No: ${userDoc.regNo} signed in.`).catch(() => {});
+      setImmediate(() => {
+        logActivity(userDoc.fullName, 'Student', 'Student Sign In', `Reg No: ${userDoc.regNo} signed in.`).catch(() => {});
+      });
 
+      res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
       return res.json({
         success: true,
         mustChangePassword: Boolean(userDoc.mustChangePassword),
@@ -317,44 +315,51 @@ router.post('/login', async (req, res) => {
 
     // Check Pending or Rejected Signup Requests for Student
     if (reqDoc) {
-      const isReqValid = await bcrypt.compare(pwd, reqDoc.passwordHash || '');
-      if (!isReqValid) {
-        logActivity(cleanRegNo, 'Student', 'Failed Login', `Invalid password for Reg No: ${cleanRegNo}`).catch(() => {});
-        return res.status(401).json({ success: false, error: 'Invalid credentials' });
-      }
-
       if (reqDoc.status === 'PENDING') {
-        logActivity(cleanRegNo, 'Student', 'Failed Login', 'Attempted login on PENDING request').catch(() => {});
+        setImmediate(() => {
+          logActivity(cleanRegNo, 'Student', 'Failed Login', 'Attempted login on PENDING request').catch(() => {});
+        });
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
         return res.status(403).json({
           success: false,
-          error: 'Your account request is awaiting Super Admin approval.'
+          code: 'PENDING_APPROVAL',
+          error: 'Your request is awaiting Super Admin approval.'
         });
       }
 
       if (reqDoc.status === 'REJECTED') {
-        logActivity(cleanRegNo, 'Student', 'Failed Login', 'Attempted login on REJECTED request').catch(() => {});
+        const reason = reqDoc.rejectionReason ? `: ${reqDoc.rejectionReason}` : '.';
+        setImmediate(() => {
+          logActivity(cleanRegNo, 'Student', 'Failed Login', 'Attempted login on REJECTED request').catch(() => {});
+        });
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
         return res.status(403).json({
           success: false,
-          error: `Your request was rejected: ${reqDoc.rejectionReason || 'Invalid registration details'}`
+          code: 'REJECTED',
+          error: `Your request was rejected${reason}`
         });
       }
     }
 
-    // Non-existent user or wrong credentials
-    logActivity(loginIdentifier, 'Guest', 'Failed Login', 'Invalid credentials').catch(() => {});
-    return res.status(401).json({
+    // Registration number not found in users or requests
+    setImmediate(() => {
+      logActivity(loginIdentifier, 'Guest', 'Failed Login', 'Registration number not found').catch(() => {});
+    });
+    res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+    return res.status(404).json({
       success: false,
-      error: 'Invalid credentials'
+      code: 'ACCOUNT_NOT_FOUND',
+      error: "You don't have an account. Please register first."
     });
   } catch (err) {
-    res.status(401).json({ success: false, error: 'Invalid credentials' });
+    res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
 // ── POST /api/auth/signup-request — Student Account Request Submission ─────
 router.post('/signup-request', async (req, res) => {
   try {
-    // Validate request body with Zod
     const parseResult = signupSchema.safeParse(req.body);
     if (!parseResult.success) {
       const errorMsg = parseResult.error.issues.map(i => i.message).join('. ');
@@ -365,10 +370,10 @@ router.post('/signup-request', async (req, res) => {
     const cleanRegNo = regNo.trim().toUpperCase();
     const cleanEmail = email.trim().toLowerCase();
 
-    // Parallel lookup for duplicate regNo or email in active Users and pending SignupRequests
+    // Parallel lookup for duplicate regNo or email
     const [existingUser, existingReq] = await Promise.all([
       User.findOne({ $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] }).lean().catch(() => null),
-      SignupRequest.findOne({ $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] }).catch(() => null)
+      SignupRequest.findOne({ $or: [{ regNo: cleanRegNo }, { email: cleanEmail }] }).lean().catch(() => null)
     ]);
 
     if (existingUser) {
@@ -381,26 +386,29 @@ router.post('/signup-request', async (req, res) => {
     if (existingReq && existingReq.status === 'PENDING') {
       return res.status(400).json({
         success: false,
-        error: 'A pending account request already exists for this registration number or email.'
+        error: 'Registration number or email already exists.'
       });
     }
 
-    // Hash password immediately with bcrypt
+    // Hash password with bcrypt cost 10
     const passwordHash = await bcrypt.hash(password, 10);
 
     let signupDoc;
     if (existingReq) {
-      // Update existing request record (e.g. if previous attempt was rejected)
-      existingReq.fullName = fullName.trim();
-      existingReq.email = cleanEmail;
-      existingReq.department = department || 'CSE';
-      existingReq.year = year || '1st Year';
-      existingReq.passwordHash = passwordHash;
-      existingReq.status = 'PENDING';
-      existingReq.rejectionReason = null;
-      existingReq.createdAt = new Date().toLocaleString('en-IN');
-      await existingReq.save();
-      signupDoc = existingReq;
+      signupDoc = await SignupRequest.findOneAndUpdate(
+        { _id: existingReq._id },
+        {
+          fullName: fullName.trim(),
+          email: cleanEmail,
+          department: department || 'CSE',
+          year: year || '1st Year',
+          passwordHash,
+          status: 'PENDING',
+          rejectionReason: null,
+          createdAt: new Date().toLocaleString('en-IN')
+        },
+        { new: true }
+      );
     } else {
       signupDoc = await SignupRequest.create({
         id: `req-${uuidv4().substring(0, 8)}`,
@@ -415,9 +423,10 @@ router.post('/signup-request', async (req, res) => {
       });
     }
 
-    await logActivity(fullName, 'Student Intake', 'Account Requested', `Reg No: ${cleanRegNo} requested account approval.`).catch(() => {});
+    setImmediate(() => {
+      logActivity(fullName, 'Student Intake', 'Account Requested', `Reg No: ${cleanRegNo} requested account approval.`).catch(() => {});
+    });
 
-    // Real-time socket notification if IO instance is attached
     if (req.app.get('io')) {
       try {
         req.app.get('io').emit('new_account_request', {
@@ -435,9 +444,7 @@ router.post('/signup-request', async (req, res) => {
       data: signupDoc
     });
   } catch (err) {
-    const isDbError = err.message && (err.message.includes('buffering timed out') || err.message.includes('findOne') || err.message.includes('Mongoose'));
-    const safeError = isDbError ? 'Registration request processing failed. Please try again.' : (err.message || 'Registration failed');
-    res.status(400).json({ success: false, error: safeError });
+    res.status(400).json({ success: false, error: err.message || 'Registration failed' });
   }
 });
 
@@ -455,7 +462,7 @@ router.get('/signup-requests', verifyToken, requireRole('super_admin'), async (_
 router.post('/signup-requests/:id/approve', verifyToken, requireRole('super_admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const reqItem = await SignupRequest.findOne({ id });
+    const reqItem = await SignupRequest.findOne({ $or: [{ id }, { regNo: id.toUpperCase() }] });
     if (!reqItem) {
       return res.status(404).json({ success: false, error: 'Signup request not found' });
     }
@@ -488,7 +495,19 @@ router.post('/signup-requests/:id/approve', verifyToken, requireRole('super_admi
       await user.save();
     }
 
-    await logActivity(req.user.name || 'Super Admin', 'Super Admin', 'Account Approved', `Approved student account for Reg No: ${cleanReg} (${reqItem.fullName})`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Account Approved', `Approved student account for Reg No: ${cleanReg} (${reqItem.fullName})`).catch(() => {});
+    });
+
+    if (req.app.get('io')) {
+      try {
+        req.app.get('io').emit('account_request_updated', {
+          id: reqItem.id,
+          regNo: cleanReg,
+          status: 'APPROVED'
+        });
+      } catch (e) {}
+    }
 
     res.json({
       success: true,
@@ -505,7 +524,7 @@ router.post('/signup-requests/:id/reject', verifyToken, requireRole('super_admin
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const reqItem = await SignupRequest.findOne({ id });
+    const reqItem = await SignupRequest.findOne({ $or: [{ id }, { regNo: id.toUpperCase() }] });
     if (!reqItem) {
       return res.status(404).json({ success: false, error: 'Signup request not found' });
     }
@@ -514,7 +533,20 @@ router.post('/signup-requests/:id/reject', verifyToken, requireRole('super_admin
     reqItem.rejectionReason = reason ? reason.trim() : 'Invalid credentials or verification failed';
     await reqItem.save();
 
-    await logActivity(req.user.name || 'Super Admin', 'Super Admin', 'Account Rejected', `Rejected Reg No: ${reqItem.regNo}. Reason: ${reqItem.rejectionReason}`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Account Rejected', `Rejected Reg No: ${reqItem.regNo}. Reason: ${reqItem.rejectionReason}`).catch(() => {});
+    });
+
+    if (req.app.get('io')) {
+      try {
+        req.app.get('io').emit('account_request_updated', {
+          id: reqItem.id,
+          regNo: reqItem.regNo,
+          status: 'REJECTED',
+          reason: reqItem.rejectionReason
+        });
+      } catch (e) {}
+    }
 
     res.json({
       success: true,
@@ -535,7 +567,19 @@ router.delete('/signup-requests/:id', verifyToken, requireRole('super_admin'), a
       return res.status(404).json({ success: false, error: 'Signup request not found' });
     }
 
-    await logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Account Request Deleted', `Deleted request for Reg No: ${reqItem.regNo}`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Account Request Deleted', `Deleted request for Reg No: ${reqItem.regNo}`).catch(() => {});
+    });
+
+    if (req.app.get('io')) {
+      try {
+        req.app.get('io').emit('account_request_updated', {
+          id: reqItem.id,
+          regNo: reqItem.regNo,
+          status: 'DELETED'
+        });
+      } catch (e) {}
+    }
 
     res.json({
       success: true,
@@ -550,12 +594,12 @@ router.delete('/signup-requests/:id', verifyToken, requireRole('super_admin'), a
 router.get('/check-status/:regNo', async (req, res) => {
   try {
     const cleanRegNo = req.params.regNo.trim().toUpperCase();
-    const activeUser = await User.findOne({ regNo: cleanRegNo });
+    const activeUser = await User.findOne({ regNo: cleanRegNo }).lean();
     if (activeUser && activeUser.status === 'ACTIVE') {
       return res.json({ success: true, data: { status: 'APPROVED' } });
     }
 
-    const reqItem = await SignupRequest.findOne({ regNo: cleanRegNo });
+    const reqItem = await SignupRequest.findOne({ regNo: cleanRegNo }).lean();
     if (!reqItem) {
       return res.json({ success: true, data: { status: 'NOT_FOUND' } });
     }
@@ -572,7 +616,7 @@ router.get('/check-status/:regNo', async (req, res) => {
   }
 });
 
-// ── PUT /api/auth/me/avatar & PUT /api/users/me/avatar — Profile Picture Upload
+// ── PUT /api/auth/me/avatar & PUT /api/users/me/avatar ─────────────────────
 const avatarHandler = async (req, res) => {
   try {
     if (!req.file) {
@@ -591,7 +635,6 @@ const avatarHandler = async (req, res) => {
     }
 
     if (user) {
-      // Delete old file if present
       if (user.avatarUrl && user.avatarUrl.startsWith('/uploads/avatars/')) {
         const oldPath = path.join(__dirname, '..', user.avatarUrl);
         if (fs.existsSync(oldPath)) {
@@ -601,7 +644,9 @@ const avatarHandler = async (req, res) => {
 
       user.avatarUrl = avatarUrl;
       await user.save();
-      await logActivity(user.name || user.fullName, user.role || 'User', 'Profile Photo Uploaded', `Updated avatar image`);
+      setImmediate(() => {
+        logActivity(user.name || user.fullName, user.role || 'User', 'Profile Photo Uploaded', `Updated avatar image`).catch(() => {});
+      });
     }
 
     res.json({
@@ -617,7 +662,7 @@ const avatarHandler = async (req, res) => {
 router.put('/me/avatar', verifyToken, uploadAvatar.single('avatar'), avatarHandler);
 router.post('/upload-avatar', uploadAvatar.single('avatar'), avatarHandler);
 
-// ── DELETE /api/auth/me/avatar & DELETE /api/users/me/avatar ────────────────
+// ── DELETE /api/auth/me/avatar ──────────────────────────────────────────────
 router.delete('/me/avatar', verifyToken, async (req, res) => {
   try {
     let user = await Staff.findOne({ id: req.user.id }) || await User.findOne({ id: req.user.id });
@@ -634,7 +679,9 @@ router.delete('/me/avatar', verifyToken, async (req, res) => {
 
     user.avatarUrl = '';
     await user.save();
-    await logActivity(user.name || user.fullName, user.role || 'User', 'Profile Photo Removed', `Deleted profile avatar`);
+    setImmediate(() => {
+      logActivity(user.name || user.fullName, user.role || 'User', 'Profile Photo Removed', `Deleted profile avatar`).catch(() => {});
+    });
 
     res.json({
       success: true,
@@ -646,7 +693,7 @@ router.delete('/me/avatar', verifyToken, async (req, res) => {
   }
 });
 
-// ── PUT /api/auth/me — Update Profile Information & Change Password ─────────
+// ── PUT /api/auth/me ─────────────────────────────────────────────────────────
 router.put('/me', verifyToken, async (req, res) => {
   try {
     const { name, fullName, phone, email, currentPassword, newPassword, confirmPassword } = req.body;
@@ -663,7 +710,6 @@ router.put('/me', verifyToken, async (req, res) => {
     if (phone !== undefined) user.phone = phone.trim();
     if (email !== undefined) user.email = email.trim();
 
-    // Password change verification
     if (newPassword) {
       if (!currentPassword) {
         return res.status(400).json({ success: false, error: 'Current password is required to set a new password.' });
@@ -681,7 +727,9 @@ router.put('/me', verifyToken, async (req, res) => {
 
       user.passwordHash = await bcrypt.hash(newPassword, 10);
       user.mustChangePassword = false;
-      await logActivity(user.name || user.fullName, user.role || 'User', 'Password Changed', 'User changed their password from profile page');
+      setImmediate(() => {
+        logActivity(user.name || user.fullName, user.role || 'User', 'Password Changed', 'User changed their password from profile page').catch(() => {});
+      });
     }
 
     await user.save();
@@ -704,7 +752,7 @@ router.put('/me', verifyToken, async (req, res) => {
   }
 });
 
-// ── Super Admin Password Reset for Students ──────────────────────────────────
+// ── Super Admin Management Endpoints ─────────────────────────────────────────
 router.post('/students/:id/reset-password', verifyToken, requireRole('super_admin'), async (req, res) => {
   try {
     const { id } = req.params;
@@ -719,11 +767,13 @@ router.post('/students/:id/reset-password', verifyToken, requireRole('super_admi
     }
 
     student.passwordHash = await bcrypt.hash(newPassword, 10);
-    student.failedLoginAttempts = 0;
+    student.failedAttempts = 0;
     student.lockoutUntil = null;
     await student.save();
 
-    await logActivity(req.user.name || 'Super Admin', 'Super Admin', 'Student Password Reset', `Reset password for Reg No: ${student.regNo}`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Student Password Reset', `Reset password for Reg No: ${student.regNo}`).catch(() => {});
+    });
 
     res.json({
       success: true,
@@ -734,7 +784,6 @@ router.post('/students/:id/reset-password', verifyToken, requireRole('super_admi
   }
 });
 
-// ── Super Admin Management Endpoints ─────────────────────────────────────────
 router.get('/students', verifyToken, requireRole('super_admin'), async (_req, res) => {
   try {
     const students = await User.find().sort({ createdAt: -1 }).lean();
@@ -753,7 +802,9 @@ router.patch('/students/:id/status', verifyToken, requireRole('super_admin'), as
 
     student.status = status;
     await student.save();
-    await logActivity(req.user.name, 'Super Admin', 'Student Status Changed', `Student ${student.regNo} set to ${status}`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Student Status Changed', `Student ${student.regNo} set to ${status}`).catch(() => {});
+    });
 
     res.json({ success: true, message: `Student status updated to ${status}`, data: student });
   } catch (err) {
@@ -767,10 +818,11 @@ router.delete('/students/:id', verifyToken, requireRole('super_admin'), async (r
     const student = await User.findOneAndDelete({ $or: [{ id }, { regNo: id.toUpperCase() }] });
     if (!student) return res.status(404).json({ success: false, error: 'Student account not found' });
 
-    // Also remove any signup request record
     await SignupRequest.deleteMany({ regNo: student.regNo });
 
-    await logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Student Deleted', `Deleted Student ${student.fullName} (${student.regNo})`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Student Deleted', `Deleted Student ${student.fullName} (${student.regNo})`).catch(() => {});
+    });
 
     res.json({ success: true, message: `Student ${student.regNo} deleted successfully.` });
   } catch (err) {
@@ -795,7 +847,7 @@ router.post('/admins', verifyToken, requireRole('super_admin'), async (req, res)
     }
 
     const cleanUser = username.trim().toLowerCase();
-    const existing = await Staff.findOne({ username: cleanUser });
+    const existing = await Staff.findOne({ username: cleanUser }).lean();
     if (existing) {
       return res.status(400).json({ success: false, error: `Username ${cleanUser} is already taken.` });
     }
@@ -811,7 +863,9 @@ router.post('/admins', verifyToken, requireRole('super_admin'), async (req, res)
       status: 'ACTIVE'
     });
 
-    await logActivity(req.user.name, 'Super Admin', 'Department Admin Created', `Created Admin ${name} for ${department}`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Department Admin Created', `Created Admin ${name} for ${department}`).catch(() => {});
+    });
 
     res.status(201).json({ success: true, message: `Department Admin ${name} created successfully.`, data: newAdmin });
   } catch (err) {
@@ -828,7 +882,9 @@ router.patch('/admins/:id/status', verifyToken, requireRole('super_admin'), asyn
 
     admin.status = status;
     await admin.save();
-    await logActivity(req.user.name, 'Super Admin', 'Admin Status Changed', `Admin ${admin.username} set to ${status}`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Admin Status Changed', `Admin ${admin.username} set to ${status}`).catch(() => {});
+    });
 
     res.json({ success: true, message: `Admin status updated to ${status}`, data: admin });
   } catch (err) {
@@ -842,7 +898,9 @@ router.delete('/admins/:id', verifyToken, requireRole('super_admin'), async (req
     const admin = await Staff.findOneAndDelete({ id });
     if (!admin) return res.status(404).json({ success: false, error: 'Admin account not found' });
 
-    await logActivity(req.user.name, 'Super Admin', 'Admin Deleted', `Deleted Admin ${admin.name} (${admin.username})`);
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Admin Deleted', `Deleted Admin ${admin.name} (${admin.username})`).catch(() => {});
+    });
 
     res.json({ success: true, message: `Admin ${admin.name} deleted successfully.` });
   } catch (err) {
@@ -877,7 +935,9 @@ router.put('/settings', verifyToken, requireRole('super_admin'), async (req, res
     }
     await settings.save();
 
-    await logActivity(req.user.name, 'Super Admin', 'System Settings Updated', 'Updated system categories or SLA thresholds');
+    setImmediate(() => {
+      logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'System Settings Updated', 'Updated system categories or SLA thresholds').catch(() => {});
+    });
 
     res.json({ success: true, message: 'System settings updated successfully.', data: settings });
   } catch (err) {
@@ -902,10 +962,12 @@ router.get('/stats', async (req, res) => {
       filter.department = new RegExp(department.replace(/\s*\(.*?\)/, '').trim(), 'i');
     }
 
-    const total = await Ticket.countDocuments(filter);
-    const resolved = await Ticket.countDocuments({ ...filter, status: 'resolved' });
-    const pending = await Ticket.countDocuments({ ...filter, status: { $in: ['new', 'submitted', 'under review'] } });
-    const inProgress = await Ticket.countDocuments({ ...filter, status: { $in: ['investigating', 'dispatched', 'in progress', 'assigned'] } });
+    const [total, resolved, pending, inProgress] = await Promise.all([
+      Ticket.countDocuments(filter),
+      Ticket.countDocuments({ ...filter, status: 'resolved' }),
+      Ticket.countDocuments({ ...filter, status: { $in: ['new', 'submitted', 'under review'] } }),
+      Ticket.countDocuments({ ...filter, status: { $in: ['investigating', 'dispatched', 'in progress', 'assigned'] } })
+    ]);
 
     res.json({
       success: true,

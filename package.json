@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cleanup:demo-student": "npm --prefix server run cleanup:demo-student"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",

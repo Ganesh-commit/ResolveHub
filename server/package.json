@@ -9,10 +9,12 @@
     "dev": "nodemon index.js",
     "seed": "node scripts/seed.js",
     "seed:admin": "node scripts/seed.js",
+    "cleanup:demo-student": "node scripts/cleanupDemoStudent.js",
     "test": "jest --runInBand --detectOpenHandles --forceExit"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",

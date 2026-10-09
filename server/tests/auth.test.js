@@ -18,10 +18,11 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
   });
 
   describe('1. Super Admin Authentication', () => {
-    it('should allow Super Admin to login with valid credentials', async () => {
+    it('should allow Super Admin to login with valid credentials in under 300ms', async () => {
       const superAdminUsername = process.env.SUPERADMIN_USERNAME || 'ksaiganesh64';
       const superAdminPassword = process.env.SUPERADMIN_PASSWORD || 'SAI@@@killer197712200611';
 
+      const startTime = Date.now();
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -29,11 +30,14 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
           password: superAdminPassword,
           role: 'super_admin'
         });
+      const duration = Date.now() - startTime;
+      console.log(`⏱️ Super Admin login response time: ${duration} ms`);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('token');
       expect(res.body.data.role).toEqual('super_admin');
+      expect(duration).toBeLessThan(300);
     });
 
     it('should reject Super Admin login with invalid password', async () => {
@@ -49,12 +53,12 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
 
       expect(res.statusCode).toEqual(401);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toMatch(/Invalid credentials/i);
+      expect(res.body.code).toEqual('WRONG_PASSWORD');
     });
   });
 
-  describe('2. Unregistered Student Login', () => {
-    it('should return 401 for student login without an active account', async () => {
+  describe('2. Unregistered Student Login (ACCOUNT_NOT_FOUND)', () => {
+    it('should return 404 ACCOUNT_NOT_FOUND for student login without an account', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -64,9 +68,10 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
           role: 'student'
         });
 
-      expect(res.statusCode).toEqual(401);
+      expect(res.statusCode).toEqual(404);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toMatch(/Invalid credentials/i);
+      expect(res.body.code).toEqual('ACCOUNT_NOT_FOUND');
+      expect(res.body.error).toMatch(/You don't have an account/i);
     });
   });
 
@@ -105,7 +110,7 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
       requestId = res.body.data.id;
     });
 
-    it('should block login while student request is pending', async () => {
+    it('should block login while student request is pending with PENDING_APPROVAL', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -117,6 +122,7 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
 
       expect(res.statusCode).toEqual(403);
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toEqual('PENDING_APPROVAL');
       expect(res.body.error).toMatch(/awaiting Super Admin approval/i);
     });
 
@@ -130,7 +136,8 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
       expect(['APPROVED', 'ACTIVE']).toContain(res.body.data.status);
     });
 
-    it('should allow approved student to log in with their chosen password', async () => {
+    it('should allow approved student to log in with chosen password in under 300ms', async () => {
+      const startTime = Date.now();
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -139,13 +146,16 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
           password: studentPassword,
           role: 'student'
         });
+      const duration = Date.now() - startTime;
+      console.log(`⏱️ Approved Student login response time: ${duration} ms`);
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.regNo).toEqual(studentRegNo);
+      expect(duration).toBeLessThan(300);
     });
 
-    it('should reject approved student login with wrong password', async () => {
+    it('should reject approved student login with wrong password (WRONG_PASSWORD)', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -157,6 +167,7 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
 
       expect(res.statusCode).toEqual(401);
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toEqual('WRONG_PASSWORD');
     });
   });
 
@@ -199,7 +210,7 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
       expect(rejRes.body.data.status).toEqual('REJECTED');
     });
 
-    it('should return rejection reason when student attempts to log in', async () => {
+    it('should return rejection reason when student attempts to log in (REJECTED)', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -211,11 +222,29 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
 
       expect(res.statusCode).toEqual(403);
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toEqual('REJECTED');
       expect(res.body.error).toMatch(/rejected/i);
     });
   });
 
-  describe('5. Avatar Upload Validation', () => {
+  describe('5. Demo Student Cleanup Verification (241FA07011)', () => {
+    it('should verify demo student 241FA07011 no longer exists and returns ACCOUNT_NOT_FOUND', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          username: '241FA07011',
+          regNo: '241FA07011',
+          password: '241FA07011',
+          role: 'student'
+        });
+
+      expect(res.statusCode).toEqual(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.code).toEqual('ACCOUNT_NOT_FOUND');
+    });
+  });
+
+  describe('6. Avatar Upload Validation', () => {
     let userToken = '';
 
     beforeAll(async () => {

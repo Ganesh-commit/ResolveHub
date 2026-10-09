@@ -4,6 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const http = require('http');
@@ -21,6 +22,9 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
+// ── Compression & Middleware ────────────────────────────────────────────────
+app.use(compression());
+
 // ── Socket.io Setup ──────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
@@ -33,9 +37,11 @@ const io = new Server(server, {
 app.set('io', io);
 
 io.on('connection', (socket) => {
-  console.log(`⚡ Socket connected: ${socket.id}`);
-  socket.on('disconnect', () => {
-    console.log(`🔌 Socket disconnected: ${socket.id}`);
+  socket.on('join_room', (room) => {
+    if (room) socket.join(room);
+  });
+  socket.on('leave_room', (room) => {
+    if (room) socket.leave(room);
   });
 });
 
@@ -44,7 +50,7 @@ connectDB().then(() => {
   startSLAWorkerInterval();
 });
 
-// ── Security & Middleware ───────────────────────────────────────────────────
+// ── Security & Headers ──────────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
@@ -71,38 +77,46 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '7d',
+  etag: true,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  }
+}));
 
-// ── Login Rate Limiter (Relaxed limit for seamless user experience) ──────────
+// ── Login Rate Limiter (10 requests per minute per IP) ─────────────────────
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300, // 300 requests per IP per 15 min window
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === 'localhost',
+  skip: (req) => process.env.NODE_ENV === 'test' || req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === 'localhost',
   message: {
     success: false,
-    error: 'Too many login attempts from this IP. Please try again after 15 minutes.'
+    code: 'RATE_LIMITED',
+    error: 'Too many login attempts. Please try again after a minute.'
   }
 });
 
-// Apply rate limiter specifically to login endpoints
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/v1/auth/login', loginLimiter);
 
 // ── Request Logger ──────────────────────────────────────────────────────────
 app.use((req, _res, next) => {
-  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
+  }
   next();
 });
 
-// ── API Route Mounts (Support both /api/v1 and /api) ────────────────────────
+// ── API Route Mounts ────────────────────────────────────────────────────────
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/v1/tickets', ticketRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', authRoutes); // User avatar & me endpoints alias
+app.use('/api/v1/users', authRoutes);
 
 app.use('/api/ai', aiRoutes);
 app.use('/api/v1/ai', aiRoutes);
@@ -110,8 +124,8 @@ app.use('/api/v1/ai', aiRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/v1/public', publicRoutes);
 
-// ── Health check ────────────────────────────────────────────────────────────
-app.get(['/api/health', '/api/v1/health'], (_req, res) => {
+// ── Health Check Endpoints ──────────────────────────────────────────────────
+app.get(['/health', '/api/health', '/api/v1/health'], (_req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'ResolveHub API', 
@@ -120,12 +134,12 @@ app.get(['/api/health', '/api/v1/health'], (_req, res) => {
   });
 });
 
-// ── 404 handler ─────────────────────────────────────────────────────────────
+// ── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Endpoint not found' });
 });
 
-// ── Error handler ───────────────────────────────────────────────────────────
+// ── Error Handler ───────────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error('Server error:', err);
   res.status(err.status || 500).json({ success: false, error: err.message || 'Internal server error' });
@@ -137,7 +151,7 @@ if (require.main === module) {
     console.log('');
     console.log('  ╔══════════════════════════════════════════════════════╗');
     console.log(`  ║  ResolveHub MongoDB Server running on port ${PORT}      ║`);
-    console.log(`  ║  http://localhost:${PORT}/api/v1/health                 ║`);
+    console.log(`  ║  http://localhost:${PORT}/health                        ║`);
     console.log('  ╚══════════════════════════════════════════════════════╝');
     console.log('');
   });

@@ -17,14 +17,14 @@ const timelineStepSchema = new mongoose.Schema({
 });
 
 const ticketSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, required: true, unique: true, index: true },
   title: { type: String, required: true },
-  category: { type: String, required: true },
-  department: { type: String, required: true },
+  category: { type: String, required: true, index: true },
+  department: { type: String, required: true, index: true },
   departmentId: { type: String, default: null },
   urgency: { type: String, default: 'medium' },
   priority: { type: String, default: 'Medium' },
-  status: { type: String, default: 'Submitted' },
+  status: { type: String, default: 'Submitted', index: true },
   slaStatus: { type: String, default: 'normal' },
   
   // ── Anonymous Reporting Mode (Anti-Ragging & Welfare) ──
@@ -84,7 +84,7 @@ const ticketSchema = new mongoose.Schema({
 
   description: { type: String, required: true },
   complainant: {
-    regNo: { type: String, required: true },
+    regNo: { type: String, required: true, index: true },
     name: { type: String, required: true },
     email: { type: String, default: '' },
     role: { type: String, default: 'Student' },
@@ -102,7 +102,7 @@ const ticketSchema = new mongoose.Schema({
   eta: { type: String, default: '3 Business Days (SLA Target)' },
   etaMinutesLeft: { type: Number, default: 4320 },
   currentStepIndex: { type: Number, default: 0 },
-  createdAt: { type: String, default: () => new Date().toLocaleString('en-IN') },
+  createdAt: { type: String, default: () => new Date().toLocaleString('en-IN'), index: true },
   updatedAt: { type: String, default: () => new Date().toLocaleString('en-IN') },
   attachments: [{
     id: { type: String },
@@ -124,5 +124,8 @@ const ticketSchema = new mongoose.Schema({
     note: { type: String }
   }]
 }, { timestamps: true });
+
+ticketSchema.index({ 'complainant.regNo': 1, status: 1 });
+ticketSchema.index({ department: 1, status: 1 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);
