@@ -820,7 +820,9 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     try {
       const res = await authApi.submitSignupRequest(data);
-      fetchSignupRequests();
+      if (authUser?.role === 'super_admin') {
+        fetchSignupRequests();
+      }
       addToast('info', 'Request Submitted', `Signup request for ${cleanedRegNo} sent to Super Admin.`);
       return {
         success: true,

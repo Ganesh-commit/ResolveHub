@@ -187,8 +187,8 @@ router.post('/login', async (req, res) => {
     // 2. Parallel MongoDB Execution for Staff, User, and SignupRequest
     const [staffDoc, userDoc, reqDoc] = await Promise.all([
       Staff.findOne({ username: lowerId }).lean().catch(() => null),
-      User.findOne({ regNo: cleanRegNo }).lean().catch(() => null),
-      SignupRequest.findOne({ regNo: cleanRegNo }).lean().catch(() => null)
+      User.findOne({ $or: [{ regNo: cleanRegNo }, { regNo: lowerId }, { email: lowerId }] }).lean().catch(() => null),
+      SignupRequest.findOne({ $or: [{ regNo: cleanRegNo }, { regNo: lowerId }, { email: lowerId }] }).lean().catch(() => null)
     ]);
 
     // Check Staff account first
