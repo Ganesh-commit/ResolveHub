@@ -5,6 +5,7 @@ const signupRequestSchema = new mongoose.Schema({
   regNo: { type: String, required: true, uppercase: true, index: true },
   fullName: { type: String, required: true },
   email: { type: String, default: '', index: true },
+  phone: { type: String, default: '' },
   department: { type: String, default: 'Computer Science & Engineering (CSE)' },
   year: { type: String, default: '1st Year' },
   passwordHash: { type: String, required: true },

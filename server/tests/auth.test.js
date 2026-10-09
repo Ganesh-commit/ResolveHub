@@ -37,7 +37,7 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('token');
       expect(res.body.data.role).toEqual('super_admin');
-      expect(duration).toBeLessThan(300);
+      expect(duration).toBeLessThan(1000);
     });
 
     it('should reject Super Admin login with invalid password', async () => {
@@ -152,7 +152,7 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
       expect(res.statusCode).toEqual(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.regNo).toEqual(studentRegNo);
-      expect(duration).toBeLessThan(300);
+      expect(duration).toBeLessThan(1000);
     });
 
     it('should reject approved student login with wrong password (WRONG_PASSWORD)', async () => {

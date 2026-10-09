@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const { z } = require('zod');
+const { normalizeRegNo } = require('../utils/normalize');
 
 const { uploadAvatar } = require('../middleware/upload');
 const { verifyToken, requireRole, JWT_SECRET } = require('../middleware/authMiddleware');
@@ -149,7 +150,9 @@ router.post('/login', async (req, res) => {
     }
 
     const lowerId = loginIdentifier.toLowerCase();
-    const cleanRegNo = loginIdentifier.toUpperCase();
+    const cleanRegNo = normalizeRegNo(loginIdentifier);
+
+
 
     // 1. Direct Instant Super Admin Check
     const isSuperAdminCreds = (
@@ -313,7 +316,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check Pending or Rejected Signup Requests for Student
+    // Check Pending, Rejected or Approved Signup Requests for Student
     if (reqDoc) {
       if (reqDoc.status === 'PENDING') {
         setImmediate(() => {
@@ -337,6 +340,56 @@ router.post('/login', async (req, res) => {
           success: false,
           code: 'REJECTED',
           error: `Your request was rejected${reason}`
+        });
+      }
+
+      if (reqDoc.status === 'APPROVED') {
+        // Auto-heal: Create User document from approved request
+        let healedUser = new User({
+          id: `usr-${uuidv4().substring(0, 8)}`,
+          regNo: cleanRegNo,
+          fullName: reqDoc.fullName,
+          email: reqDoc.email || '',
+          phone: reqDoc.phone || '',
+          department: reqDoc.department || 'CSE',
+          year: reqDoc.year || '1st Year',
+          passwordHash: reqDoc.passwordHash,
+          mustChangePassword: false,
+          status: 'ACTIVE',
+          activatedAt: new Date().toLocaleString('en-IN')
+        });
+        await healedUser.save();
+
+        const isUserValid = await bcrypt.compare(pwd, healedUser.passwordHash || '');
+        if (!isUserValid) {
+          res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+          return res.status(401).json({ success: false, code: 'WRONG_PASSWORD', error: 'Incorrect password.' });
+        }
+
+        const token = generateJWT({
+          id: healedUser.id,
+          regNo: healedUser.regNo,
+          role: 'student',
+          name: healedUser.fullName,
+          department: healedUser.department
+        });
+
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+        return res.json({
+          success: true,
+          mustChangePassword: false,
+          data: {
+            id: healedUser.id,
+            regNo: healedUser.regNo,
+            name: healedUser.fullName,
+            email: healedUser.email || '',
+            phone: healedUser.phone || '',
+            department: healedUser.department,
+            year: healedUser.year,
+            avatarUrl: healedUser.avatarUrl || '',
+            role: 'student',
+            token
+          }
         });
       }
     }
@@ -367,7 +420,7 @@ router.post('/signup-request', async (req, res) => {
     }
 
     const { fullName, regNo, email, phone, department, year, password } = parseResult.data;
-    const cleanRegNo = regNo.trim().toUpperCase();
+    const cleanRegNo = normalizeRegNo(regNo);
     const cleanEmail = email.trim().toLowerCase();
 
     // Parallel lookup for duplicate regNo or email
@@ -400,6 +453,7 @@ router.post('/signup-request', async (req, res) => {
         {
           fullName: fullName.trim(),
           email: cleanEmail,
+          phone: phone ? phone.trim() : '',
           department: department || 'CSE',
           year: year || '1st Year',
           passwordHash,
@@ -415,6 +469,7 @@ router.post('/signup-request', async (req, res) => {
         regNo: cleanRegNo,
         fullName: fullName.trim(),
         email: cleanEmail,
+        phone: phone ? phone.trim() : '',
         department: department || 'CSE',
         year: year || '1st Year',
         passwordHash,
@@ -462,38 +517,47 @@ router.get('/signup-requests', verifyToken, requireRole('super_admin'), async (_
 router.post('/signup-requests/:id/approve', verifyToken, requireRole('super_admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const reqItem = await SignupRequest.findOne({ $or: [{ id }, { regNo: id.toUpperCase() }] });
+    const cleanId = normalizeRegNo(id);
+
+    const reqItem = await SignupRequest.findOne({ $or: [{ id }, { regNo: cleanId }] });
     if (!reqItem) {
       return res.status(404).json({ success: false, error: 'Signup request not found' });
     }
 
-    reqItem.status = 'APPROVED';
-    await reqItem.save();
+    const cleanReg = normalizeRegNo(reqItem.regNo);
 
-    const cleanReg = reqItem.regNo.trim().toUpperCase();
-
-    // Create or activate student account using the SAME password hash chosen in request form
+    // 1. FIRST: Create or activate student account in `users` collection using the SAME password hash chosen in request form
     let user = await User.findOne({ regNo: cleanReg });
     if (!user) {
       user = new User({
         id: `usr-${uuidv4().substring(0, 8)}`,
         regNo: cleanReg,
         fullName: reqItem.fullName,
-        email: reqItem.email,
-        department: reqItem.department,
-        year: reqItem.year,
+        email: reqItem.email || '',
+        phone: reqItem.phone || '',
+        department: reqItem.department || 'CSE',
+        year: reqItem.year || '1st Year',
         passwordHash: reqItem.passwordHash,
         mustChangePassword: false,
         status: 'ACTIVE',
         activatedAt: new Date().toLocaleString('en-IN')
       });
-      await user.save();
     } else {
       user.status = 'ACTIVE';
       user.passwordHash = reqItem.passwordHash;
+      user.fullName = reqItem.fullName;
+      user.email = reqItem.email || user.email;
+      user.phone = reqItem.phone || user.phone;
+      user.department = reqItem.department || user.department;
+      user.year = reqItem.year || user.year;
       user.mustChangePassword = false;
-      await user.save();
     }
+    await user.save();
+
+    // 2. SECOND: Update SignupRequest status to APPROVED
+    reqItem.status = 'APPROVED';
+    reqItem.rejectionReason = null;
+    await reqItem.save();
 
     setImmediate(() => {
       logActivity(req.user?.name || 'Super Admin', 'Super Admin', 'Account Approved', `Approved student account for Reg No: ${cleanReg} (${reqItem.fullName})`).catch(() => {});
@@ -524,7 +588,9 @@ router.post('/signup-requests/:id/reject', verifyToken, requireRole('super_admin
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const reqItem = await SignupRequest.findOne({ $or: [{ id }, { regNo: id.toUpperCase() }] });
+    const cleanId = normalizeRegNo(id);
+
+    const reqItem = await SignupRequest.findOne({ $or: [{ id }, { regNo: cleanId }] });
     if (!reqItem) {
       return res.status(404).json({ success: false, error: 'Signup request not found' });
     }
@@ -550,7 +616,7 @@ router.post('/signup-requests/:id/reject', verifyToken, requireRole('super_admin
 
     res.json({
       success: true,
-      message: `Account request for ${reqItem.regNo} rejected.`,
+      message: `Signup request for ${reqItem.regNo} has been rejected.`,
       data: reqItem
     });
   } catch (err) {

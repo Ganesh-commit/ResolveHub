@@ -10,6 +10,8 @@
     "seed": "node scripts/seed.js",
     "seed:admin": "node scripts/seed.js",
     "cleanup:demo-student": "node scripts/cleanupDemoStudent.js",
+    "debug:student": "node scripts/debugStudent.js",
+    "migrate:approved-requests": "node scripts/migrateApprovedRequests.js",
     "test": "jest --runInBand --detectOpenHandles --forceExit"
   },
   "dependencies": {
