@@ -51,6 +51,7 @@ export const LoginModal: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   if (!isLoginModalOpen) return null;
 
@@ -73,8 +74,6 @@ export const LoginModal: React.FC = () => {
   };
 
   const pwdStrength = getPasswordStrength(signupPassword);
-
-  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   // Handle Student Login submission
   const handleStudentLogin = async (e: React.FormEvent) => {
