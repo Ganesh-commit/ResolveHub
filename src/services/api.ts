@@ -35,20 +35,36 @@ async function apiFetch(path: string, options?: RequestInit): Promise<any> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-  const json = await res.json().catch(() => ({ success: false, error: 'Server returned invalid JSON response' }));
-  if (!res.ok || !json.success) {
-    const errObj: any = new Error(json.error || json.message || 'API request failed');
-    errObj.status = res.status;
-    errObj.data = json;
-    throw errObj;
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...options,
+      headers,
+      signal: options?.signal || controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    const json = await res.json().catch(() => ({ success: false, error: 'Server returned invalid JSON response' }));
+    if (!res.ok || !json.success) {
+      const errObj: any = new Error(json.error || json.message || 'API request failed');
+      errObj.status = res.status;
+      errObj.data = json;
+      throw errObj;
+    }
+
+    return json.data !== undefined ? json : json;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const timeoutErr: any = new Error('Request timed out. Please try again.');
+      timeoutErr.code = 'TIMEOUT';
+      throw timeoutErr;
+    }
+    throw err;
   }
-
-  return json.data !== undefined ? json : json;
 }
 
 // ── Ticket API ────────────────────────────────────────────────────────────

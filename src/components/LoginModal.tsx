@@ -381,10 +381,13 @@ export const LoginModal: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 bg-[#8a2410] hover:bg-[#6f1b0c] disabled:opacity-50 text-white font-extrabold text-xs py-3.5 rounded-full shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
+                className="w-full mt-2 bg-[#8a2410] hover:bg-[#6f1b0c] disabled:opacity-75 text-white font-extrabold text-xs py-3.5 rounded-full shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
               >
                 {loading ? (
-                  <span>Verifying Credentials...</span>
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Verifying Credentials...</span>
+                  </>
                 ) : (
                   <>
                     <span>STUDENT SIGN IN</span>

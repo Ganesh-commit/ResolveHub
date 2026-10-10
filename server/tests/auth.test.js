@@ -227,14 +227,14 @@ describe('ResolveHub Authentication & Account Verification API Tests', () => {
     });
   });
 
-  describe('5. Demo Student Cleanup Verification (241FA07011)', () => {
-    it('should verify demo student 241FA07011 no longer exists and returns ACCOUNT_NOT_FOUND', async () => {
+  describe('5. Non-Existent Student Verification (999FA99999)', () => {
+    it('should verify unregistered student 999FA99999 returns ACCOUNT_NOT_FOUND', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
-          username: '241FA07011',
-          regNo: '241FA07011',
-          password: '241FA07011',
+          username: '999FA99999',
+          regNo: '999FA99999',
+          password: 'password123',
           role: 'student'
         });
 

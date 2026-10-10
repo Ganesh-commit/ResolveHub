@@ -187,11 +187,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 2. Parallel MongoDB Execution for Staff, User, and SignupRequest
+    // 2. Parallel Fast Indexed MongoDB Execution for Staff, User, and SignupRequest
+    const isEmail = loginIdentifier.includes('@');
+    const userQuery = isEmail ? { email: lowerId } : { regNo: cleanRegNo };
+    const reqQuery = isEmail ? { email: lowerId } : { regNo: cleanRegNo };
+
     const [staffDoc, userDoc, reqDoc] = await Promise.all([
       Staff.findOne({ username: lowerId }).lean().catch(() => null),
-      User.findOne({ $or: [{ regNo: cleanRegNo }, { regNo: lowerId }, { email: lowerId }] }).lean().catch(() => null),
-      SignupRequest.findOne({ $or: [{ regNo: cleanRegNo }, { regNo: lowerId }, { email: lowerId }] }).lean().catch(() => null)
+      User.findOne(userQuery).lean().catch(() => null),
+      SignupRequest.findOne(reqQuery).lean().catch(() => null)
     ]);
 
     // Check Staff account first

@@ -3,7 +3,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 
 async function cleanupDemoStudent() {
-  const targetRegNo = '241FA07011';
+  const targetRegNo = 'TEST_DEMO_DELETE_999';
   console.log(`🧹 Starting cleanup for demo student: ${targetRegNo}...`);
 
   const envURI = process.env.MONGODB_URI;

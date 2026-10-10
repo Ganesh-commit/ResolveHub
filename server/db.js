@@ -28,6 +28,10 @@ async function verifyPassword(password, storedHash) {
 }
 
 const dns = require('dns');
+// Set high-performance DNS upfront to eliminate 5-15s Windows SRV query latency
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {}
 
 // ── Connect MongoDB ──────────────────────────────────────────────────────
 async function connectDB() {
@@ -35,11 +39,17 @@ async function connectDB() {
   const isPlaceholder = !envURI || envURI.includes('YOUR_USERNAME') || envURI.includes('cluster0.xxxxx');
   const mongoURI = isPlaceholder ? 'mongodb://127.0.0.1:27017/resolvehub' : envURI;
 
+  const mongoOptions = {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    family: 4
+  };
+
   try {
     console.log(`📡 Connecting to MongoDB Database (${isPlaceholder ? 'Local Mongo Fallback' : 'MongoDB Atlas'})...`);
-    await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000
-    });
+    await mongoose.connect(mongoURI, mongoOptions);
     console.log(`✅ Connected successfully to MongoDB! (${mongoose.connection.host})`);
     
     // Auto-seed initial defaults & superadmin
@@ -47,12 +57,12 @@ async function connectDB() {
   } catch (err) {
     console.error(`⚠️ Primary MongoDB Connection Note: ${err.message}`);
     
-    // If SRV DNS lookup failed on OS default DNS (common on Windows), retry with fallback DNS servers
+    // If SRV DNS lookup failed, retry once with explicit DNS fallback
     if (err.message.includes('querySrv') || err.message.includes('ECONNREFUSED') || err.message.includes('ENOTFOUND')) {
       try {
         console.log(`📡 Retrying MongoDB Atlas connection with fallback DNS servers (8.8.8.8, 1.1.1.1)...`);
         dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
-        await mongoose.connect(mongoURI, { serverSelectionTimeoutMS: 5000 });
+        await mongoose.connect(mongoURI, mongoOptions);
         console.log(`✅ Connected successfully to MongoDB via DNS fallback! (${mongoose.connection.host})`);
         await seedInitialData();
         return;
@@ -66,7 +76,7 @@ async function connectDB() {
     } else {
       try {
         console.log(`🔄 Attempting Local MongoDB fallback (mongodb://127.0.0.1:27017/resolvehub)...`);
-        await mongoose.connect('mongodb://127.0.0.1:27017/resolvehub', { serverSelectionTimeoutMS: 3000 });
+        await mongoose.connect('mongodb://127.0.0.1:27017/resolvehub', { serverSelectionTimeoutMS: 3000, family: 4 });
         console.log(`✅ Connected successfully to Local MongoDB!`);
         await seedInitialData();
       } catch (fallbackErr) {

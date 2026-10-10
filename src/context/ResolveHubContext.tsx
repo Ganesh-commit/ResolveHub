@@ -165,12 +165,7 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_AUTH_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.regNo === '241FA07011' || parsed?.username === '241FA07011') {
-          localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
-          return null;
-        }
-        return parsed;
+        return JSON.parse(saved);
       }
       return null;
     } catch {
@@ -518,37 +513,6 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      // ── Student Fallback / Demo / Approved Request Instant Login Failsafe ──────────
-      const upperId = (identifier || '').trim().toUpperCase();
-      const approvedReq = signupRequests.find(r => r.regNo.toUpperCase() === upperId && r.status === 'APPROVED');
-      const existingStudent = studentsList.find(s => s.regNo.toUpperCase() === upperId);
-
-      if (upperId === '241FA07011' || approvedReq || existingStudent) {
-        const studentName = approvedReq?.fullName || existingStudent?.fullName || 'Venkata Sai Teja';
-        const studentDept = approvedReq?.department || existingStudent?.department || 'Computer Science & Engineering (CSE)';
-        const studentEmail = approvedReq?.email || existingStudent?.email || `${upperId.toLowerCase()}@vignan.ac.in`;
-
-        const authData: AuthUser = {
-          id: `usr-${upperId}`,
-          name: studentName,
-          username: upperId,
-          regNo: upperId,
-          email: studentEmail,
-          phone: approvedReq?.phone || '',
-          role: 'student',
-          department: studentDept,
-          year: approvedReq?.year || '1st Year',
-          avatarUrl: '',
-          token: `student_jwt_token_${upperId}`
-        };
-
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('student_dashboard');
-        addToast('success', 'Student Sign In', `Welcome ${studentName} (Reg No: ${upperId})`);
-        return { success: true };
-      }
-
       return { success: false, code: resData?.code, message: resData?.error || resData?.message || 'Invalid credentials' };
     } catch (err: any) {
       if (isSuperAdminMatch) {
@@ -570,39 +534,79 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       }
 
-      // Student Fallback in Catch Block
       const upperId = (identifier || '').trim().toUpperCase();
-      const approvedReq = signupRequests.find(r => r.regNo.toUpperCase() === upperId && r.status === 'APPROVED');
-      const existingStudent = studentsList.find(s => s.regNo.toUpperCase() === upperId);
-
-      if (upperId === '241FA07011' || approvedReq || existingStudent) {
-        const studentName = approvedReq?.fullName || existingStudent?.fullName || 'Venkata Sai Teja';
-        const studentDept = approvedReq?.department || existingStudent?.department || 'Computer Science & Engineering (CSE)';
-        const studentEmail = approvedReq?.email || existingStudent?.email || `${upperId.toLowerCase()}@vignan.ac.in`;
-
-        const authData: AuthUser = {
-          id: `usr-${upperId}`,
-          name: studentName,
-          username: upperId,
-          regNo: upperId,
-          email: studentEmail,
-          phone: approvedReq?.phone || '',
-          role: 'student',
-          department: studentDept,
-          year: approvedReq?.year || '1st Year',
-          avatarUrl: '',
-          token: `student_jwt_token_${upperId}`
-        };
-
-        setAuthUser(authData);
-        setIsLoginModalOpen(false);
-        setActiveView('student_dashboard');
-        addToast('success', 'Student Sign In', `Welcome ${studentName} (Reg No: ${upperId})`);
-        return { success: true };
-      }
-
       const errorMsg = err.data?.error || err.data?.message || err.message || 'Invalid credentials';
       const errorCode = err.data?.code || (errorMsg.includes("don't have an account") ? 'ACCOUNT_NOT_FOUND' : undefined);
+
+      // If user does not have an account, immediately return ACCOUNT_NOT_FOUND
+      if (errorCode === 'ACCOUNT_NOT_FOUND' || errorMsg.includes("don't have an account")) {
+        return {
+          success: false,
+          code: 'ACCOUNT_NOT_FOUND',
+          message: "You don't have an account. Please register first."
+        };
+      }
+
+      // If explicit wrong password
+      if (errorCode === 'WRONG_PASSWORD') {
+        return {
+          success: false,
+          code: 'WRONG_PASSWORD',
+          message: 'Incorrect password.'
+        };
+      }
+
+      // If pending approval
+      if (errorCode === 'PENDING_APPROVAL') {
+        return {
+          success: false,
+          code: 'PENDING_APPROVAL',
+          message: 'Your request is awaiting Super Admin approval.'
+        };
+      }
+
+      // If rejected
+      if (errorCode === 'REJECTED') {
+        return {
+          success: false,
+          code: 'REJECTED',
+          message: errorMsg
+        };
+      }
+
+      // Only if offline network failure, check local approved request
+      const isNetworkError = err.code === 'TIMEOUT' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError');
+      if (isNetworkError) {
+        const approvedReq = signupRequests.find(r => r.regNo.toUpperCase() === upperId && r.status === 'APPROVED');
+        const existingStudent = studentsList.find(s => s.regNo.toUpperCase() === upperId);
+
+        if (approvedReq || existingStudent) {
+          const studentName = approvedReq?.fullName || existingStudent?.fullName || 'K Sai Ganesh';
+          const studentDept = approvedReq?.department || existingStudent?.department || 'Information Technology (IT)';
+          const studentEmail = approvedReq?.email || existingStudent?.email || `${upperId.toLowerCase()}@vignan.ac.in`;
+
+          const authData: AuthUser = {
+            id: `usr-${upperId}`,
+            name: studentName,
+            username: upperId,
+            regNo: upperId,
+            email: studentEmail,
+            phone: approvedReq?.phone || '',
+            role: 'student',
+            department: studentDept,
+            year: approvedReq?.year || '1st Year',
+            avatarUrl: '',
+            token: `student_jwt_token_${upperId}`
+          };
+
+          setAuthUser(authData);
+          setIsLoginModalOpen(false);
+          setActiveView('student_dashboard');
+          addToast('success', 'Student Sign In', `Welcome ${studentName} (Reg No: ${upperId})`);
+          return { success: true };
+        }
+      }
+
       return { success: false, code: errorCode, message: errorMsg };
     }
   };
@@ -882,6 +886,18 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     try {
       const res = await authApi.submitSignupRequest(data);
+      const newReq: SignupRequest = {
+        id: res.data?.id || `req-${Math.random().toString(36).substring(2, 9)}`,
+        regNo: cleanedRegNo,
+        fullName: data.fullName.trim(),
+        email: data.email.trim(),
+        department: data.department || 'CSE',
+        year: data.year || '1st Year',
+        status: 'PENDING',
+        createdAt: new Date().toLocaleString('en-IN')
+      };
+      setSignupRequests(prev => [newReq, ...prev.filter(r => r.regNo !== cleanedRegNo)]);
+
       if (authUser?.role === 'super_admin') {
         fetchSignupRequests();
       }
@@ -923,6 +939,21 @@ export const ResolveHubProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     );
 
     if (reqItem) {
+      setStudentsList(prev => {
+        if (prev.some(s => s.regNo.toUpperCase() === reqItem.regNo.toUpperCase())) return prev;
+        return [{
+          id: `usr-${reqItem.regNo.toLowerCase()}`,
+          regNo: reqItem.regNo.toUpperCase(),
+          fullName: reqItem.fullName,
+          email: reqItem.email,
+          phone: reqItem.phone || '',
+          department: reqItem.department,
+          year: reqItem.year,
+          status: 'ACTIVE',
+          activatedAt: new Date().toLocaleString('en-IN')
+        }, ...prev];
+      });
+
       const newNotif: NotificationItem = {
         id: Math.random().toString(36).substring(2, 9),
         title: `🎉 Registration Request Approved!`,

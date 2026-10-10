@@ -30,6 +30,8 @@ async function seedDatabase() {
   }
 
   const Staff = require('../models/Staff');
+  const User = require('../models/User');
+  const SignupRequest = require('../models/SignupRequest');
 
   // 1. Seed / Update Super Admin Account (Idempotent)
   let existingAdmin = await Staff.findOne({ username: superUsername });
@@ -59,6 +61,80 @@ async function seedDatabase() {
     } else {
       console.log(`ℹ️ Super Admin account is up to date: ${superUsername}`);
     }
+  }
+
+  // 2. Seed / Update Active Student 241FA07011 (Password: 241FA07011)
+  const targetReg = '241FA07011';
+  const targetPwd = '241FA07011';
+  const studentHash = await bcrypt.hash(targetPwd, 10);
+
+  let existingStudent = await User.findOne({ regNo: targetReg });
+  if (!existingStudent) {
+    existingStudent = await User.create({
+      id: 'usr-241fa07011',
+      regNo: targetReg,
+      fullName: 'K Sai Ganesh',
+      email: 'ksaiganesh64@vignan.ac.in',
+      phone: '+91 9876543210',
+      department: 'Information Technology (IT)',
+      year: '1st Year',
+      passwordHash: studentHash,
+      mustChangePassword: false,
+      status: 'ACTIVE',
+      activatedAt: new Date().toLocaleString('en-IN')
+    });
+    console.log(`✅ Student account created: ${targetReg}`);
+  } else {
+    existingStudent.passwordHash = studentHash;
+    existingStudent.status = 'ACTIVE';
+    existingStudent.mustChangePassword = false;
+    existingStudent.failedAttempts = 0;
+    existingStudent.lockoutUntil = null;
+    await existingStudent.save();
+    console.log(`🔄 Student account verified and activated: ${targetReg}`);
+  }
+
+  // Ensure corresponding SignupRequest is APPROVED
+  let existingReq = await SignupRequest.findOne({ regNo: targetReg });
+  if (!existingReq) {
+    await SignupRequest.create({
+      id: 'req-241fa07011',
+      regNo: targetReg,
+      fullName: 'K Sai Ganesh',
+      email: 'ksaiganesh64@vignan.ac.in',
+      phone: '+91 9876543210',
+      department: 'Information Technology (IT)',
+      year: '1st Year',
+      passwordHash: studentHash,
+      status: 'APPROVED',
+      rejectionReason: null,
+      createdAt: new Date().toLocaleString('en-IN')
+    });
+    console.log(`✅ Signup request approved: ${targetReg}`);
+  } else {
+    existingReq.status = 'APPROVED';
+    existingReq.rejectionReason = null;
+    existingReq.passwordHash = studentHash;
+    await existingReq.save();
+    console.log(`ℹ️ Signup request status confirmed APPROVED: ${targetReg}`);
+  }
+
+  // 3. Seed Pre-Approved Demo Student 241FA07001
+  const demoReg = '241FA07001';
+  let demoStudent = await User.findOne({ regNo: demoReg });
+  if (!demoStudent) {
+    const demoHash = await bcrypt.hash('241FA07001', 10);
+    await User.create({
+      id: 'usr-student-001',
+      regNo: demoReg,
+      fullName: 'Venkata Sai Teja',
+      email: 'saiteja.241fa07001@gmail.com',
+      department: 'Computer Science & Engineering (CSE)',
+      year: '3rd Year',
+      passwordHash: demoHash,
+      status: 'ACTIVE',
+      activatedAt: new Date().toLocaleString('en-IN')
+    });
   }
 
   if (closeDb) {
