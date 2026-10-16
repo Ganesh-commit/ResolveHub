@@ -49,18 +49,23 @@ export const Navbar = () => {
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-12 h-18 flex items-center justify-between">
         
         {/* ── Left: Brand Logo & Badge ───────────────────────────────────── */}
-        <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => handleNavClick(isAdmin ? (isSuperAdmin ? 'super_admin_dashboard' : 'dept_admin_dashboard') : 'student_dashboard')}>
-          <div className="w-10 h-10 rounded-full bg-[#8a2410] text-white flex items-center justify-center font-black text-xl border-2 border-[#ffc20e] shadow-md transform hover:scale-105 transition-transform">
-            V
+        <div className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none" onClick={() => handleNavClick(isAdmin ? (isSuperAdmin ? 'super_admin_dashboard' : 'dept_admin_dashboard') : 'student_dashboard')}>
+          <div className="bg-white p-1 rounded-xl shadow-xs border border-stone-200 dark:border-slate-700 flex items-center justify-center shrink-0 hover:scale-105 transition-transform">
+            <img
+              src="/images/vignan-logo.png"
+              alt="Vignan University"
+              className="h-8 sm:h-10 md:h-11 w-auto object-contain"
+            />
           </div>
+          <div className="h-8 w-px bg-stone-300 dark:bg-slate-700 hidden sm:block"></div>
           <div>
-            <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading-playfair leading-none flex items-center gap-1.5 whitespace-nowrap">
+            <h1 className="text-sm sm:text-base md:text-lg font-black text-slate-900 dark:text-white tracking-tight font-heading-playfair leading-none flex items-center gap-1.5 whitespace-nowrap">
               Vignan's <span className="text-[#8a2410] dark:text-amber-400">ResolveHub</span>
               {isAdmin && (<span className="px-2 py-0.5 rounded-md text-[9px] bg-amber-400/20 text-[#8a2410] dark:text-amber-300 border border-amber-400/40 uppercase font-extrabold tracking-wider shrink-0 whitespace-nowrap">
                   {isSuperAdmin ? 'Super Admin' : 'Dept Admin'}
                 </span>)}
             </h1>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-0.5">
               Grievance Resolution Portal
             </p>
           </div>

@@ -165,8 +165,14 @@ export const LoginModal = () => {
 
           {/* Modal Header */}
           <div className="text-center mb-5">
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-[#8a2410] dark:text-amber-400 flex items-center justify-center mx-auto mb-3 shadow-xs">
-              {authMode === 'admin_login' ? <ShieldCheck className="w-6 h-6 text-[#8a2410] dark:text-amber-400"/> : <Shield className="w-6 h-6 text-[#8a2410] dark:text-amber-400"/>}
+            <div className="flex justify-center mb-3">
+              <div className="bg-white p-1.5 rounded-2xl border border-stone-200 dark:border-slate-700 shadow-xs inline-flex items-center">
+                <img
+                  src="/images/vignan-logo.png"
+                  alt="Vignan University"
+                  className="h-11 w-auto object-contain"
+                />
+              </div>
             </div>
             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white font-heading">
               {authMode === 'student_login' && 'Student Sign In'}

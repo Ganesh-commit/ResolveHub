@@ -75,8 +75,12 @@ export const Sidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) 
       {/* Top Header: Logo & Branding */}
       <div className="relative z-10 p-4 border-b border-white/10 flex items-center justify-between">
         <div onClick={() => handleNavClick(authUser?.role === 'super_admin' ? 'super_admin_dashboard' : authUser?.role === 'dept_admin' ? 'dept_admin_dashboard' : authUser?.role === 'student' ? 'student_dashboard' : 'home')} className="flex items-center gap-3 cursor-pointer group">
-          <div className="w-10 h-10 rounded-2xl bg-white text-[#8B2414] flex items-center justify-center shadow-lg font-bold font-serif text-lg group-hover:scale-105 transition-transform flex-shrink-0">
-            V
+          <div className="bg-white p-1 rounded-xl shadow-lg group-hover:scale-105 transition-transform flex-shrink-0 flex items-center justify-center">
+            <img
+              src="/images/vignan-logo.png"
+              alt="Vignan University"
+              className="h-8 w-auto object-contain"
+            />
           </div>
 
           {!collapsed && (<div className="flex flex-col">

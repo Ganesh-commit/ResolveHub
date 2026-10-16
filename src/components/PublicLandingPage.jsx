@@ -101,11 +101,16 @@ export const PublicLandingPage = () => {
           
           {/* Brand Logo & Badge */}
           <div className="flex items-center gap-3.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-11 h-11 rounded-full bg-[#8a2410] text-white flex items-center justify-center font-black text-xl shadow-md border-2 border-[#ffc20e]">
-              V
+            <div className="bg-white p-1 rounded-xl shadow-xs border border-stone-200 flex items-center justify-center shrink-0 hover:scale-105 transition-transform">
+              <img
+                src="/images/vignan-logo.png"
+                alt="Vignan University"
+                className="h-9 sm:h-11 w-auto object-contain"
+              />
             </div>
+            <div className="h-8 w-px bg-stone-300 hidden sm:block"></div>
             <div>
-              <h1 className="text-lg font-black text-slate-900 tracking-tight font-heading-playfair leading-none">
+              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight font-heading-playfair leading-none">
                 Vignan's <span className="text-[#8a2410]">ResolveHub</span>
               </h1>
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mt-0.5">

@@ -32,8 +32,12 @@ export const Footer = () => {
         {/* Left Column: Brand & Description */}
         <div className="md:col-span-4 space-y-4">
           <div onClick={() => handleNavClick('home')} className="flex items-center gap-3 cursor-pointer group">
-            <div className="w-10 h-10 rounded-full bg-[#8a2410] text-white flex items-center justify-center font-black text-xl border-2 border-[#ffc20e] shadow-md group-hover:scale-105 transition-transform">
-              V
+            <div className="bg-white p-1 rounded-xl shadow-md group-hover:scale-105 transition-transform shrink-0">
+              <img
+                src="/images/vignan-logo.png"
+                alt="Vignan University"
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <div>
               <h3 className="text-xl font-black text-white font-heading-playfair leading-none">
