@@ -1,4 +1,4 @@
-const Ticket = require('../models/Ticket');
+const { Ticket } = require('../db');
 
 /**
  * Evaluates all pending complaints against university SLA rules:

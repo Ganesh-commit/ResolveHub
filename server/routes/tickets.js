@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const { Ticket, uuidv4, logActivity } = require('../db');
+const { Ticket, User, uuidv4, logActivity } = require('../db');
 const { uploadAttachments } = require('../middleware/uploadAttachment');
 const { analyzeGrievanceText, checkDuplicateCluster } = require('../services/aiCategorizerService');
 const { smartRouteGrievance, getDepartmentRegexForHOD } = require('../services/smartRoutingService');
@@ -275,10 +275,12 @@ router.post('/', (req, res, next) => {
 }, async (req, res) => {
   try {
     const {
+      id: reqId,
       title,
       category,
       department: reqDept,
       urgency = 'medium',
+      priority: reqPriority,
       location = '',
       locationId = null,
       zone = 'Online / No location',
@@ -296,12 +298,25 @@ router.post('/', (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Category and description are required' });
     }
 
-    const regNoClean = (studentRegNo || '241FA07001').toUpperCase();
-    const nameClean = studentName || `Student ${regNoClean}`;
-    const emailClean = studentEmail || `${regNoClean.toLowerCase()}@campus.edu`;
+    const regNoClean = (studentRegNo || '241FA07011').trim().toUpperCase();
+    const dbStudent = await User.findOne({ regNo: regNoClean }).lean().catch(() => null);
+    const nameClean = studentName || dbStudent?.fullName || dbStudent?.name || `Student ${regNoClean}`;
+    const emailClean = studentEmail || dbStudent?.email || `${regNoClean.toLowerCase()}@vignan.ac.in`;
+    const deptClean = studentDept || dbStudent?.department || 'Information Technology (IT)';
 
     const aiInfo = analyzeGrievanceText(description);
-    const titleExtract = title || (description.length > 55 ? description.substring(0, 52) + '...' : description);
+    const titleExtract = title || (description.length > 65 ? description.substring(0, 62) + '...' : description);
+
+    const priorityNorm = reqPriority || (
+      urgency.toLowerCase() === 'critical' || urgency.toLowerCase() === 'urgent' ? 'Urgent' :
+      urgency.toLowerCase() === 'high' ? 'High' :
+      urgency.toLowerCase() === 'low' ? 'Low' : 'Medium'
+    );
+    const urgencyNorm = (
+      priorityNorm === 'Urgent' ? 'critical' :
+      priorityNorm === 'High' ? 'high' :
+      priorityNorm === 'Low' ? 'low' : 'medium'
+    );
 
     // Run SuperAdmin Smart Triage & Department HOD Auto-Routing Engine
     const smartRouting = smartRouteGrievance({
@@ -309,18 +324,21 @@ router.post('/', (req, res, next) => {
       description,
       category,
       location,
-      studentDept: studentDept || reqDept,
-      urgency
+      studentDept: deptClean,
+      urgency: priorityNorm
     });
 
     const assignedDepartment = smartRouting.isRetainedBySuperAdmin
       ? 'SuperAdmin Executive Desk'
-      : (reqDept || smartRouting.targetDepartment || aiInfo.department || 'Information Technology (IT)');
+      : ((reqDept && reqDept !== 'Department Desk' && reqDept !== 'Campus Administration')
+          ? reqDept
+          : (smartRouting.targetDepartment || aiInfo.department || deptClean));
 
     const etaMap = { critical: 120, urgent: 120, high: 240, medium: 480, low: 960 };
     const randNum = Math.floor(1000 + Math.random() * 9000);
-    const newId = `RP-${randNum}`;
+    const newId = reqId || `RP-${randNum}`;
     const timestamp = `${today()}, ${now()}`;
+    const isoNow = new Date().toISOString();
 
     // Process Attachments (Multipart uploaded files or JSON array)
     let processedAttachments = [];
@@ -365,10 +383,10 @@ router.post('/', (req, res, next) => {
       title: titleExtract,
       category: category || aiInfo.category,
       department: assignedDepartment,
-      urgency: urgency.toLowerCase(),
-      priority: urgency.toLowerCase() === 'critical' ? 'Urgent' : 'Medium',
-      status: smartRouting.isRetainedBySuperAdmin ? 'Under Review' : 'Assigned',
-      slaStatus: urgency.toLowerCase() === 'critical' ? 'warning' : 'normal',
+      urgency: urgencyNorm,
+      priority: priorityNorm,
+      status: req.body.status || 'Pending',
+      slaStatus: urgencyNorm === 'critical' ? 'warning' : 'normal',
       isAnonymous: Boolean(isAnonymous),
       anonymousAlias: isAnonymous ? 'Anonymous Student (Shielded)' : undefined,
       locationId: locationId || null,
@@ -389,17 +407,57 @@ router.post('/', (req, res, next) => {
         name: nameClean,
         email: emailClean,
         role: 'Student',
-        department: studentDept || 'Engineering'
+        department: deptClean
       },
-      submittedBy: isAnonymous ? 'Confidential Anonymous Submission' : `Reg No: ${regNoClean} (${emailClean})`,
+      submittedBy: isAnonymous ? 'Confidential Anonymous Submission' : `${nameClean} (${regNoClean})`,
       assignedAgent: smartRouting.assignedHOD || null,
+      assignedOfficer: smartRouting.assignedHOD?.name || 'Department Nodal Officer',
       responseRemarks: smartRouting.routingReason,
       eta: `${smartRouting.slaHours || 24} Hours (SLA Target)`,
-      etaMinutesLeft: etaMap[urgency.toLowerCase()] || 480,
+      etaMinutesLeft: etaMap[urgencyNorm] || 480,
       submittedAt: timestamp,
       createdAt: timestamp,
+      createdAtIso: isoNow,
       updatedAt: timestamp,
       attachments: processedAttachments,
+      timeline: [
+        {
+          stepKey: 'submitted',
+          title: 'Grievance Submitted',
+          status: 'Submitted',
+          timestamp,
+          date: timestamp,
+          note: `Logged by ${nameClean} (${regNoClean})`,
+          completed: true
+        },
+        {
+          stepKey: 'assigned',
+          title: 'Smart Triage & HOD Routing',
+          status: 'Assigned',
+          timestamp,
+          date: timestamp,
+          note: smartRouting.routingReason,
+          completed: false
+        },
+        {
+          stepKey: 'in_progress',
+          title: 'Field Action & Inspection',
+          status: 'In Progress',
+          timestamp: '',
+          date: 'Scheduled',
+          note: 'Awaiting field inspection',
+          completed: false
+        },
+        {
+          stepKey: 'resolved',
+          title: 'Resolution Verified',
+          status: 'Resolved',
+          timestamp: '',
+          date: 'Pending Completion',
+          note: 'Awaiting final closure',
+          completed: false
+        }
+      ],
       auditLogs: [
         {
           id: uuidv4(),
@@ -412,10 +470,10 @@ router.post('/', (req, res, next) => {
         {
           id: uuidv4(),
           timestamp: now(),
-          author: isAnonymous ? 'Anonymous Student' : `Student ${regNoClean}`,
+          author: isAnonymous ? 'Anonymous Student' : `${nameClean} (${regNoClean})`,
           role: 'Student',
           action: isAnonymous ? 'Anonymous Complaint Logged' : 'Complaint Logged',
-          note: `Registered with ${urgency.toUpperCase()} priority. ${isAnonymous ? '[Identity Shielded for Welfare]' : ''}`
+          note: `Registered with ${priorityNorm} priority. ${isAnonymous ? '[Identity Shielded for Welfare]' : ''}`
         }
       ]
     });
@@ -817,6 +875,51 @@ router.patch('/:id/assign', async (req, res) => {
 
     await curTicket.save();
     res.json({ success: true, message: `Complaint assigned to ${agentName}`, data: curTicket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/tickets/:id/notes — Add Official Audit Note / Response Remarks ─
+router.post('/:id/notes', async (req, res) => {
+  try {
+    const { note, author = 'Admin Officer', role = 'Admin' } = req.body;
+    const curTicket = await Ticket.findOne({ id: req.params.id });
+    if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+
+    if (note) {
+      curTicket.responseRemarks = note;
+      curTicket.updatedAt = `${today()}, ${now()}`;
+      if (!Array.isArray(curTicket.auditLogs)) curTicket.auditLogs = [];
+      curTicket.auditLogs.unshift({
+        id: uuidv4(),
+        timestamp: now(),
+        author,
+        role,
+        action: 'Admin Remarks Added',
+        note
+      });
+      await curTicket.save();
+    }
+    res.json({ success: true, message: 'Remarks added successfully', data: curTicket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── PATCH /api/tickets/:id/escalate — Escalate Ticket Priority ──────────────
+router.patch('/:id/escalate', async (req, res) => {
+  try {
+    const curTicket = await Ticket.findOne({ id: req.params.id });
+    if (!curTicket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+
+    curTicket.priority = 'Urgent';
+    curTicket.urgency = 'critical';
+    curTicket.isEscalated = true;
+    curTicket.escalationLevel = 'LEVEL_2_DEAN';
+    curTicket.updatedAt = `${today()}, ${now()}`;
+    await curTicket.save();
+    res.json({ success: true, message: 'Ticket escalated to Urgent/Critical', data: curTicket });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

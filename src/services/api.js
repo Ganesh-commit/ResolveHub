@@ -136,7 +136,7 @@ export const authApi = {
         body: JSON.stringify(data),
     }),
     /** Fetch all signup requests for Admin verification */
-    getSignupRequests: () => apiFetch('/auth/signup-requests'),
+    getSignupRequests: () => apiFetch('/auth/signup-requests').then(res => Array.isArray(res?.data) ? res.data : res),
     /** Check request status for a registration number */
     checkStatus: (regNo) => apiFetch(`/auth/check-status/${encodeURIComponent(regNo)}`),
     /** Admin approve signup request */
@@ -172,7 +172,7 @@ export const authApi = {
         body: JSON.stringify({ newPassword }),
     }),
     /** Student Management (Super Admin) */
-    getStudents: () => apiFetch('/auth/students'),
+    getStudents: () => apiFetch('/auth/students').then(res => Array.isArray(res?.data) ? res.data : res),
     toggleStudentStatus: (id, status) => apiFetch(`/auth/students/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
@@ -181,7 +181,7 @@ export const authApi = {
         method: 'DELETE'
     }),
     /** Admin Management (Super Admin) */
-    getAdmins: () => apiFetch('/auth/admins'),
+    getAdmins: () => apiFetch('/auth/admins').then(res => Array.isArray(res?.data) ? res.data : res),
     createAdmin: (data) => apiFetch('/auth/admins', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -194,13 +194,13 @@ export const authApi = {
         method: 'DELETE'
     }),
     /** System Settings */
-    getSettings: () => apiFetch('/auth/settings'),
+    getSettings: () => apiFetch('/auth/settings').then(res => res?.data || res),
     updateSettings: (settings) => apiFetch('/auth/settings', {
         method: 'PUT',
         body: JSON.stringify(settings)
     }),
     /** Activity Audit Logs */
-    getActivityLogs: () => apiFetch('/auth/activity-logs'),
+    getActivityLogs: () => apiFetch('/auth/activity-logs').then(res => Array.isArray(res?.data) ? res.data : res),
     /** Dashboard statistics */
     getStats: (department) => apiFetch(`/auth/stats${department ? `?department=${encodeURIComponent(department)}` : ''}`),
 };

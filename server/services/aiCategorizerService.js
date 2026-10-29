@@ -1,4 +1,4 @@
-const Ticket = require('../models/Ticket');
+const { Ticket } = require('../db');
 
 /**
  * AI Auto-Categorization & Priority Engine

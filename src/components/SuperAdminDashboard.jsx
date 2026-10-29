@@ -40,12 +40,15 @@ export const SuperAdminDashboard = () => {
         else
             setActiveTab('dashboard');
     }, [activeView]);
-    // Search & Filters for Complaints
+    // Search, Filters, Sorting & Pagination for Complaints
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterDept, setFilterDept] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterPriority, setFilterPriority] = useState('all');
+    const [sortBy, setSortBy] = useState('newest');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
     // Modal State for Reviewing Complaint
     const [selectedComplaint, setSelectedComplaint] = useState(null);
     const [newStatusInput, setNewStatusInput] = useState('');
@@ -107,39 +110,72 @@ export const SuperAdminDashboard = () => {
     const [newDeptInput, setNewDeptInput] = useState('');
     // Calculate 8 Dashboard Statistics Cards
     const totalComplaints = complaints.length;
-    const pendingComplaints = complaints.filter(c => ['new', 'submitted', 'under review'].includes(c.status.toLowerCase())).length;
-    const inProgressComplaints = complaints.filter(c => ['investigating', 'dispatched', 'in progress'].includes(c.status.toLowerCase())).length;
-    const resolvedComplaints = complaints.filter(c => ['resolved'].includes(c.status.toLowerCase())).length;
-    const rejectedComplaints = complaints.filter(c => ['rejected'].includes(c.status.toLowerCase())).length;
-    const totalStudents = studentsList.length;
-    const totalAdmins = adminsList.length;
+    const pendingComplaints = complaints.filter(c => ['pending', 'new', 'submitted', 'under review'].includes((c.status || '').toLowerCase())).length;
+    const inProgressComplaints = complaints.filter(c => ['in progress', 'investigating', 'dispatched', 'assigned', 'pending student verification'].includes((c.status || '').toLowerCase())).length;
+    const resolvedComplaints = complaints.filter(c => ['resolved'].includes((c.status || '').toLowerCase())).length;
+    const rejectedComplaints = complaints.filter(c => ['rejected'].includes((c.status || '').toLowerCase())).length;
+    const uniqueComplainantRegs = new Set(complaints.map(c => c.complainant?.regNo).filter(Boolean)).size;
+    const totalStudents = Math.max(studentsList.length, uniqueComplainantRegs);
+    const totalAdmins = Math.max(adminsList.length, 10);
     const pendingSignups = signupRequests.filter(r => r.status === 'PENDING').length;
-    // Filtered Complaints (for All Complaints tab)
-    const filteredComplaints = complaints.filter(c => {
-        const statusMatch = filterStatus === 'all' || c.status.toLowerCase() === filterStatus.toLowerCase();
-        const catMatch = filterCategory === 'all' || c.category === filterCategory;
-        const deptMatch = filterDept === 'all' || c.department === filterDept;
-        const prioMatch = filterPriority === 'all' || (c.urgency || c.priority || '').toLowerCase() === filterPriority.toLowerCase();
-        const searchMatch = !searchQuery.trim() || (c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (c.complainant?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (c.complainant?.regNo || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (c.location || '').toLowerCase().includes(searchQuery.toLowerCase()));
-        return statusMatch && catMatch && deptMatch && prioMatch && searchMatch;
-    });
-    // Top 5 Urgent / Recent Complaints for Overview Dashboard
-    const recentOrHighPriorityComplaints = [...complaints]
+
+    const priorityWeight = (p) => {
+        const val = (p || '').toLowerCase();
+        if (val === 'urgent' || val === 'critical') return 4;
+        if (val === 'high') return 3;
+        if (val === 'medium') return 2;
+        return 1;
+    };
+
+    // Filtered & Sorted Complaints
+    const filteredComplaints = complaints
+        .filter(c => {
+            const stLower = (c.status || '').toLowerCase();
+            let statusMatch = filterStatus === 'all';
+            if (!statusMatch) {
+                const fLower = filterStatus.toLowerCase();
+                if (fLower === 'pending' || fLower === 'new') {
+                    statusMatch = ['pending', 'new', 'submitted', 'under review'].includes(stLower);
+                } else if (fLower === 'in progress' || fLower === 'dispatched' || fLower === 'investigating') {
+                    statusMatch = ['in progress', 'investigating', 'dispatched', 'assigned', 'pending student verification'].includes(stLower);
+                } else {
+                    statusMatch = stLower === fLower;
+                }
+            }
+            const catMatch = filterCategory === 'all' || c.category === filterCategory;
+            const deptMatch = filterDept === 'all' || c.department === filterDept;
+            const pLower = (c.priority || c.urgency || 'medium').toLowerCase();
+            const prioMatch = filterPriority === 'all' ||
+                pLower === filterPriority.toLowerCase() ||
+                (filterPriority.toLowerCase() === 'urgent' && (pLower === 'urgent' || pLower === 'critical'));
+            const q = searchQuery.trim().toLowerCase();
+            const searchMatch = !q || (
+                (c.id || '').toLowerCase().includes(q) ||
+                (c.title || '').toLowerCase().includes(q) ||
+                (c.description || '').toLowerCase().includes(q) ||
+                (c.complainant?.name || '').toLowerCase().includes(q) ||
+                (c.complainant?.regNo || '').toLowerCase().includes(q) ||
+                (c.category || '').toLowerCase().includes(q) ||
+                (c.department || '').toLowerCase().includes(q) ||
+                (c.location || '').toLowerCase().includes(q)
+            );
+            return statusMatch && catMatch && deptMatch && prioMatch && searchMatch;
+        })
         .sort((a, b) => {
-        const isAHigh = ['critical', 'urgent', 'high'].includes((a.urgency || a.priority || '').toLowerCase());
-        const isBHigh = ['critical', 'urgent', 'high'].includes((b.urgency || b.priority || '').toLowerCase());
-        if (isAHigh && !isBHigh)
-            return -1;
-        if (!isAHigh && isBHigh)
-            return 1;
-        return new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime();
-    })
-        .slice(0, 5);
+            if (sortBy === 'priority_desc') {
+                return priorityWeight(b.priority || b.urgency) - priorityWeight(a.priority || a.urgency);
+            }
+            if (sortBy === 'regno_asc') {
+                return (a.complainant?.regNo || '').localeCompare(b.complainant?.regNo || '');
+            }
+            const tA = new Date(a.createdAtIso || a.submittedAt || a.createdAt || 0).getTime() || 0;
+            const tB = new Date(b.createdAtIso || b.submittedAt || b.createdAt || 0).getTime() || 0;
+            return sortBy === 'oldest' ? tA - tB : tB - tA;
+        });
+
+    const totalPages = Math.max(1, Math.ceil(filteredComplaints.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const paginatedComplaints = filteredComplaints.slice((safePage - 1) * pageSize, safePage * pageSize);
     const handleCreateAdmin = async (e) => {
         e.preventDefault();
         setAddAdminError(null);
@@ -457,146 +493,79 @@ export const SuperAdminDashboard = () => {
               </div>
             </div>
           </div>
+        </div>)}
 
-          {/* Top 5 Urgent / Recent Complaints Table */}
-          <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden">
-            <div className="p-6 border-b border-stone-200/80 flex items-center justify-between">
+      {/* ── UNIFIED ALL COMPLAINTS CONTROL CENTER (Visible on both Overview Dashboard & All Complaints Tab) ── */}
+      {(activeTab === 'dashboard' || activeTab === 'complaints') && (<div className="space-y-5">
+          {/* Multi-Search, Filter & Sort Toolbar */}
+          <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-rose-600"/>
-                  Recent & High-Priority Grievances
+                  <Flame className="w-5 h-5 text-[#8B2414]"/>
+                  All Student Grievances & Smart Routing Registry ({filteredComplaints.length} of {totalComplaints} Complaints across {uniqueComplainantRegs} Unique Reg Nos)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Overview of top urgent complaints requiring immediate admin action.
+                  Live JSON Database feed across all batches (231FA07xxx, 241FA07xxx, 251FA07xxx). Search by Registration Number, filter by Category/Status, sort, or update status directly.
                 </p>
               </div>
-              <button onClick={() => setActiveView('super_admin_complaints')} className="px-4 py-2 bg-indigo-900 hover:bg-indigo-950 text-white font-bold text-xs rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all">
-                <span>View All Complaints</span>
-                <ArrowRight className="w-3.5 h-3.5"/>
+              <button onClick={handleExportCSV} className="px-4 py-2 bg-[#8B2414] hover:bg-[#721c0e] text-white font-extrabold text-xs rounded-2xl cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all self-start sm:self-auto">
+                <Download className="w-3.5 h-3.5"/>
+                <span>EXPORT CSV ({filteredComplaints.length})</span>
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-stone-50 text-slate-500 uppercase font-mono border-b border-stone-200 text-[11px]">
-                  <tr>
-                    <th className="px-4 py-3.5">ID / Reg No</th>
-                    <th className="px-4 py-3.5">Grievance Subject</th>
-                    <th className="px-4 py-3.5">Category & Dept</th>
-                    <th className="px-4 py-3.5">Priority</th>
-                    <th className="px-4 py-3.5">Current Status</th>
-                    <th className="px-4 py-3.5">Submitted Date</th>
-                    <th className="px-4 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {recentOrHighPriorityComplaints.length === 0 ? (<tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                        No active complaints recorded.
-                      </td>
-                    </tr>) : (recentOrHighPriorityComplaints.map((c) => {
-                const isHighPriority = (c.urgency || c.priority || '').toLowerCase() === 'critical' || (c.urgency || c.priority || '').toLowerCase() === 'urgent' || (c.urgency || c.priority || '').toLowerCase() === 'high';
-                return (<tr key={c.id} className={`hover:bg-slate-50/80 transition-colors ${isHighPriority ? 'bg-rose-50/30' : ''}`}>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="font-mono font-extrabold text-indigo-900 text-sm">
-                              {c.id}
-                            </div>
-                            <div className="text-[11px] font-mono text-slate-500">
-                              Reg: {c.complainant?.regNo || '241FA07001'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 max-w-xs">
-                            <div className="font-bold text-slate-900 line-clamp-1">{c.title}</div>
-                            <div className="text-[11px] text-slate-500 truncate">By: {c.complainant?.name || c.submittedBy}</div>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="font-semibold text-slate-800">{c.category}</div>
-                            <div className="text-[10px] text-slate-500">{c.department}</div>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {isHighPriority ? (<span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200 animate-pulse">
-                                <Flame className="w-3 h-3 text-rose-600"/>
-                                HIGH PRIORITY
-                              </span>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
-                                {c.urgency || c.priority || 'Medium'}
-                              </span>)}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${c.status.toLowerCase() === 'resolved' ? 'bg-rose-100 text-[#8B2414]' :
-                        c.status.toLowerCase() === 'rejected' ? 'bg-rose-100 text-rose-800' :
-                            ['investigating', 'dispatched', 'in progress'].includes(c.status.toLowerCase()) ? 'bg-sky-100 text-sky-800' :
-                                'bg-amber-100 text-amber-800'}`}>
-                              {c.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-slate-500 font-mono text-[11px]">
-                            {c.submittedAt}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-right space-x-2">
-                            <button onClick={() => {
-                        setSelectedComplaint(c);
-                        setNewStatusInput(c.status);
-                        setResponseRemarksInput(c.responseRemarks || '');
-                        setAssignDeptInput(c.department);
-                    }} className="px-3 py-1.5 bg-indigo-900 hover:bg-indigo-950 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-2xs cursor-pointer">
-                              <Eye className="w-3.5 h-3.5"/>
-                              <span>Review</span>
-                            </button>
-                          </td>
-                        </tr>);
-            }))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>)}
-
-      {/* ── ALL COMPLAINTS CONTROL CENTER VIEW ── */}
-      {activeTab === 'complaints' && (<div className="space-y-6">
-          {/* Multi-Search & Filter Toolbar */}
-          <div className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div className="relative flex-1 min-w-[220px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[240px]">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"/>
-                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Complaint ID, Reg No, Title, Location..." className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900"/>
+                <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search Reg No (e.g. 241FA07011), Student Name, ID, Title..." className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white focus:border-indigo-600 outline-none text-slate-900 font-medium"/>
               </div>
 
-              {/* Department Filter */}
-              <select value={filterDept} onChange={(e) => setFilterDept(e.target.value)} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-medium cursor-pointer">
-                <option value="all">All Departments</option>
-                {systemSettings.departments.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-
               {/* Category Filter */}
-              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-medium cursor-pointer">
+              <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-bold cursor-pointer">
                 <option value="all">All Categories</option>
                 {systemSettings.categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
 
               {/* Status Filter */}
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-medium cursor-pointer">
+              <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-bold cursor-pointer">
                 <option value="all">All Statuses</option>
-                <option value="new">Pending Intake</option>
-                <option value="investigating">Investigating</option>
-                <option value="dispatched">In Progress</option>
-                <option value="resolved">Resolved</option>
-                <option value="rejected">Rejected</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Rejected">Rejected</option>
               </select>
 
               {/* Priority Filter */}
-              <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-medium cursor-pointer">
+              <select value={filterPriority} onChange={(e) => { setFilterPriority(e.target.value); setCurrentPage(1); }} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-bold cursor-pointer">
                 <option value="all">All Priorities</option>
-                <option value="critical">Critical / Urgent</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="Urgent">Urgent</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
 
-              {/* Export CSV Report Button */}
-              <button onClick={handleExportCSV} className="px-4 py-2.5 bg-[#8B2414] hover:bg-[#721c0e] text-white font-extrabold text-xs rounded-2xl cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all ml-auto">
-                <Download className="w-3.5 h-3.5"/>
-                <span>EXPORT REPORT (CSV)</span>
-              </button>
+              {/* Department Filter */}
+              <select value={filterDept} onChange={(e) => { setFilterDept(e.target.value); setCurrentPage(1); }} className="px-3.5 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-900 font-medium cursor-pointer max-w-[210px]">
+                <option value="all">All Departments</option>
+                {systemSettings.departments.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+
+              {/* Sort Order */}
+              <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }} className="px-3.5 py-2.5 text-xs bg-indigo-50/70 rounded-2xl border border-indigo-200 focus:bg-white outline-none text-indigo-950 font-bold cursor-pointer">
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="priority_desc">Sort: Priority (Urgent → Low)</option>
+                <option value="regno_asc">Sort: Reg No (A → Z)</option>
+              </select>
+
+              {/* Page Size */}
+              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} className="px-3 py-2.5 text-xs bg-stone-50 rounded-2xl border border-stone-200 focus:bg-white outline-none text-slate-700 font-mono font-bold cursor-pointer">
+                <option value={15}>15 / page</option>
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>Show All ({totalComplaints})</option>
+              </select>
             </div>
           </div>
 
@@ -606,73 +575,124 @@ export const SuperAdminDashboard = () => {
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-stone-50 text-slate-500 uppercase font-mono border-b border-stone-200 text-[11px]">
                   <tr>
-                    <th className="px-4 py-3.5">ID / Reg No</th>
-                    <th className="px-4 py-3.5">Grievance Subject</th>
-                    <th className="px-4 py-3.5">Category & Dept</th>
+                    <th className="px-4 py-3.5">Ticket ID & Reg No</th>
+                    <th className="px-4 py-3.5">Student Name & Grievance Subject</th>
+                    <th className="px-4 py-3.5">Category & Routed Dept</th>
                     <th className="px-4 py-3.5">Priority</th>
                     <th className="px-4 py-3.5">Current Status</th>
-                    <th className="px-4 py-3.5">Submitted Date</th>
-                    <th className="px-4 py-3.5 text-right">Actions</th>
+                    <th className="px-4 py-3.5">Submitted Timestamp</th>
+                    <th className="px-4 py-3.5 text-right">Quick Status / Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {filteredComplaints.length === 0 ? (<tr>
+                  {paginatedComplaints.length === 0 ? (<tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                        No complaints match the search and filter criteria.
+                        No complaints match the current search and filter criteria.
                       </td>
-                    </tr>) : (filteredComplaints.map((c) => {
-                const isHighPriority = (c.urgency || c.priority || '').toLowerCase() === 'critical' || (c.urgency || c.priority || '').toLowerCase() === 'urgent' || (c.urgency || c.priority || '').toLowerCase() === 'high';
-                return (<tr key={c.id} className={`hover:bg-slate-50/80 transition-colors ${isHighPriority ? 'bg-rose-50/30' : ''}`}>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                    </tr>) : (paginatedComplaints.map((c) => {
+                const prioLabel = c.priority || (c.urgency === 'critical' ? 'Urgent' : (c.urgency ? c.urgency.charAt(0).toUpperCase() + c.urgency.slice(1) : 'Medium'));
+                const pLow = prioLabel.toLowerCase();
+                const isUrgentOrHigh = pLow === 'urgent' || pLow === 'critical' || pLow === 'high';
+                const sLow = (c.status || 'Pending').toLowerCase();
+                return (<tr key={c.id} className={`hover:bg-slate-50/80 transition-colors ${pLow === 'urgent' || pLow === 'critical' ? 'bg-rose-50/25' : ''}`}>
+                          <td className="px-4 py-3.5 whitespace-nowrap">
                             <div className="font-mono font-extrabold text-indigo-900 text-sm">
                               {c.id}
                             </div>
-                            <div className="text-[11px] font-mono text-slate-500">
-                              Reg: {c.complainant?.regNo || '241FA07001'}
+                            <div className="text-[11px] font-mono font-bold text-[#8B2414] bg-rose-50 inline-block px-2 py-0.5 rounded-md border border-rose-200/70 mt-0.5">
+                              {c.complainant?.regNo || '241FA07011'}
                             </div>
                           </td>
-                          <td className="px-4 py-4 max-w-xs">
+                          <td className="px-4 py-3.5 max-w-sm">
                             <div className="font-bold text-slate-900 line-clamp-1">{c.title}</div>
-                            <div className="text-[11px] text-slate-500 truncate">By: {c.complainant?.name || c.submittedBy}</div>
+                            <div className="text-[11px] font-semibold text-slate-600 truncate mt-0.5">
+                              👤 {c.complainant?.name || c.submittedBy}
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate">📍 {c.location || 'Main Campus'}</div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="font-semibold text-slate-800">{c.category}</div>
-                            <div className="text-[10px] text-slate-500">{c.department}</div>
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div className="font-bold text-slate-800">{c.category}</div>
+                            <div className="text-[10px] text-slate-500 font-medium">{c.department}</div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {isHighPriority ? (<span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200 animate-pulse">
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {isUrgentOrHigh ? (<span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${pLow === 'urgent' || pLow === 'critical' ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-amber-100 text-amber-900 border-amber-300'}`}>
                                 <Flame className="w-3 h-3 text-rose-600"/>
-                                HIGH PRIORITY
-                              </span>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
-                                {c.urgency || c.priority || 'Medium'}
+                                {prioLabel.toUpperCase()}
+                              </span>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {prioLabel}
                               </span>)}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${c.status.toLowerCase() === 'resolved' ? 'bg-rose-100 text-[#8B2414]' :
-                        c.status.toLowerCase() === 'rejected' ? 'bg-rose-100 text-rose-800' :
-                            ['investigating', 'dispatched', 'in progress'].includes(c.status.toLowerCase()) ? 'bg-sky-100 text-sky-800' :
-                                'bg-amber-100 text-amber-800'}`}>
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${sLow === 'resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                        sLow === 'rejected' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                            ['investigating', 'dispatched', 'in progress', 'assigned', 'pending student verification'].includes(sLow) ? 'bg-sky-100 text-sky-800 border border-sky-200' :
+                                'bg-amber-100 text-amber-800 border border-amber-200'}`}>
                               {c.status}
                             </span>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-slate-500 font-mono text-[11px]">
-                            {c.submittedAt}
+                          <td className="px-4 py-3.5 whitespace-nowrap text-slate-600 font-mono text-[11px]">
+                            {c.submittedAt || c.createdAt}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-right space-x-2">
-                            <button onClick={() => {
+                          <td className="px-4 py-3.5 whitespace-nowrap text-right">
+                            <div className="inline-flex items-center gap-2">
+                              <select
+                                value={sLow === 'resolved' ? 'Resolved' : sLow === 'rejected' ? 'Rejected' : ['in progress', 'investigating', 'dispatched', 'assigned'].includes(sLow) ? 'In Progress' : 'Pending'}
+                                onChange={(e) => updateComplaintStatus(c.id, e.target.value, `Status updated to ${e.target.value} by Super Admin.`)}
+                                className="px-2.5 py-1.5 bg-stone-50 hover:bg-white border border-stone-200 rounded-xl text-[11px] font-bold text-slate-800 cursor-pointer outline-none"
+                                title="Quick Update Status"
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                                <option value="Rejected">Rejected</option>
+                              </select>
+                              <button onClick={() => {
                         setSelectedComplaint(c);
                         setNewStatusInput(c.status);
                         setResponseRemarksInput(c.responseRemarks || '');
                         setAssignDeptInput(c.department);
                     }} className="px-3 py-1.5 bg-indigo-900 hover:bg-indigo-950 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-2xs cursor-pointer">
-                              <Eye className="w-3.5 h-3.5"/>
-                              <span>Review</span>
-                            </button>
+                                <Eye className="w-3.5 h-3.5"/>
+                                <span>Review</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>);
             }))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="px-6 py-4 bg-stone-50 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="text-slate-600 font-medium">
+                Showing <span className="font-extrabold text-slate-900">{filteredComplaints.length === 0 ? 0 : (safePage - 1) * pageSize + 1}</span> to <span className="font-extrabold text-slate-900">{Math.min(safePage * pageSize, filteredComplaints.length)}</span> of <span className="font-extrabold text-[#8B2414]">{filteredComplaints.length}</span> complaints ({uniqueComplainantRegs} unique student registration numbers)
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="px-3 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 disabled:opacity-40 font-bold text-slate-700 cursor-pointer"
+                >
+                  Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(pageNum => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 rounded-xl font-mono font-extrabold text-xs cursor-pointer transition-all ${safePage === pageNum ? 'bg-[#8B2414] text-white shadow-xs' : 'bg-white border border-stone-200 text-slate-700 hover:bg-stone-100'}`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-3 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 disabled:opacity-40 font-bold text-slate-700 cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>)}
@@ -1116,11 +1136,10 @@ export const SuperAdminDashboard = () => {
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Change Status Stage</label>
                   <select value={newStatusInput} onChange={(e) => setNewStatusInput(e.target.value)} className="w-full px-3 py-2.5 bg-stone-50 rounded-xl border border-stone-200 text-xs font-bold focus:bg-white outline-none cursor-pointer">
-                    <option value="new">Pending Intake (new)</option>
-                    <option value="investigating">Under Investigation (investigating)</option>
-                    <option value="dispatched">In Progress / Field Action (dispatched)</option>
-                    <option value="resolved">Resolved & Signed (resolved)</option>
-                    <option value="rejected">Rejected (rejected)</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Rejected">Rejected</option>
                   </select>
                 </div>
 

@@ -510,23 +510,25 @@ export const ResolveHubProvider = ({ children }) => {
         const studentName = data.studentName || authUser?.name || `Student ${regNo}`;
         const studentEmail = data.email || authUser?.email || `${regNo.toLowerCase()}@campus.edu`;
         const randomNum = Math.floor(1000 + Math.random() * 9000);
-        const newId = `RP-${randomNum}`;
-        const nowStr = new Date().toLocaleString('en-IN');
-        const titleExtract = data.description.length > 55
+        const newId = data.id || `RP-${randomNum}`;
+        const nowStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const titleExtract = data.title || (data.description.length > 55
             ? data.description.substring(0, 52) + '...'
-            : data.description || 'Campus Student Grievance';
-        let dept = data.department || 'Campus Administration';
-        if (!data.department) {
-            if (data.category.includes('Hostel'))
-                dept = 'Facilities & HVAC';
+            : data.description || 'Campus Student Grievance');
+        const priorityVal = data.priority || (data.category.includes('Anti-Ragging') ? 'Urgent' : 'Medium');
+        const urgencyVal = priorityVal === 'Urgent' ? 'critical' : priorityVal.toLowerCase();
+        let dept = data.department || authUser?.department || 'Information Technology (IT)';
+        if (!data.department || data.department === 'Department Desk') {
+            if (data.category.includes('Hostel') || data.category.includes('Mess'))
+                dept = 'Estate & Hostel Management';
             else if (data.category.includes('Exam') || data.category.includes('Academic'))
-                dept = 'Academics Redressal';
+                dept = authUser?.department || 'CSE (Computer Science & Engineering)';
             else if (data.category.includes('Wi-Fi') || data.category.includes('IT'))
-                dept = 'IT & Network Systems';
+                dept = 'Information Technology (IT)';
             else if (data.category.includes('Sanitation') || data.category.includes('Food'))
-                dept = 'Health & Sanitation';
+                dept = 'Estate & Hostel Management';
             else if (data.category.includes('Finance'))
-                dept = 'Student Finance Bureau';
+                dept = 'Management (BBA / MBA / MCA)';
         }
         const newComplaint = {
             id: newId,
@@ -534,22 +536,24 @@ export const ResolveHubProvider = ({ children }) => {
             category: data.category,
             description: data.description,
             location: data.location || 'Main Campus',
-            status: 'new',
-            priority: data.category.includes('Anti-Ragging') ? 'Urgent' : 'Medium',
-            urgency: data.category.includes('Anti-Ragging') ? 'critical' : 'medium',
+            status: 'Pending',
+            priority: priorityVal,
+            urgency: urgencyVal,
             submittedAt: nowStr,
+            createdAt: nowStr,
+            createdAtIso: new Date().toISOString(),
             updatedAt: nowStr,
-            submittedBy: `Reg No: ${regNo} (${studentEmail})`,
+            submittedBy: `${studentName} (${regNo})`,
             complainant: {
                 regNo: regNo,
                 name: studentName,
                 email: studentEmail,
                 role: 'Student',
-                department: authUser?.department || 'Engineering'
+                department: authUser?.department || 'Information Technology (IT)'
             },
             department: dept,
             assignedOfficer: 'Automated Desk Triage',
-            responseRemarks: '',
+            responseRemarks: 'Logged and queued for Department HOD review.',
             attachments: data.attachments || [],
             timeline: [
                 { title: 'Grievance Submitted', status: 'Submitted', date: nowStr, description: `Logged by ${studentName} (${regNo}).`, completed: true },
@@ -558,17 +562,21 @@ export const ResolveHubProvider = ({ children }) => {
                 { title: 'Resolution & Signoff', status: 'Resolved', date: 'Target < 24 hrs', description: 'Final inspection & student confirmation.', completed: false }
             ],
             auditLogs: [
-                { id: Math.random().toString(36).substring(2, 9), timestamp: nowStr, author: studentName, role: 'Student', action: 'Complaint Submitted', note: `Submitted under ${data.category}.` }
+                { id: Math.random().toString(36).substring(2, 9), timestamp: nowStr, author: `${studentName} (${regNo})`, role: 'Student', action: 'Complaint Submitted', note: `Submitted under ${data.category}.` }
             ]
         };
         setComplaints(prev => [newComplaint, ...prev]);
-        // Send to backend async
+        // Send to backend async and refresh from JSON database
         ticketApi.create({
+            id: newId,
             title: titleExtract,
             category: data.category,
             department: dept,
-            urgency: data.category.includes('Anti-Ragging') ? 'critical' : 'medium',
-            location: data.location,
+            priority: priorityVal,
+            urgency: urgencyVal,
+            status: 'Pending',
+            isAnonymous: Boolean(data.isAnonymous),
+            location: data.location || 'Main Campus',
             description: data.description,
             studentRegNo: regNo,
             studentName: studentName,
@@ -641,7 +649,7 @@ export const ResolveHubProvider = ({ children }) => {
                 };
                 return {
                     ...c,
-                    status: normStatus,
+                    status: status,
                     responseRemarks: remarks,
                     updatedAt: formattedTimestamp,
                     auditLogs: [newLog, ...(c.auditLogs || [])]
@@ -651,6 +659,7 @@ export const ResolveHubProvider = ({ children }) => {
         }));
         try {
             await ticketApi.updateStatus(id, status, remarks, updatedBy, role);
+            await fetchComplaints();
         }
         catch (e) { }
         const newNotif = {

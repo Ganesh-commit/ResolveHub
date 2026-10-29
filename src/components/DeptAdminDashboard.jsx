@@ -153,14 +153,14 @@ export const DeptAdminDashboard = () => {
     const [aiDuplicateAlert, setAiDuplicateAlert] = useState(null);
     // ── Department KPI Statistics ─────────────────────────────────────────────
     const totalDept = deptComplaints.length;
-    const pendingDept = deptComplaints.filter(c => ['new', 'submitted', 'under review'].includes(c.status.toLowerCase())).length;
-    const inProgressDept = deptComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned'].includes(c.status.toLowerCase())).length;
-    const resolvedDept = deptComplaints.filter(c => ['resolved'].includes(c.status.toLowerCase())).length;
+    const pendingDept = deptComplaints.filter(c => ['pending', 'new', 'submitted', 'under review'].includes((c.status || '').toLowerCase())).length;
+    const inProgressDept = deptComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned', 'pending student verification'].includes((c.status || '').toLowerCase())).length;
+    const resolvedDept = deptComplaints.filter(c => ['resolved'].includes((c.status || '').toLowerCase())).length;
     const overdueDept = deptComplaints.filter(c => (c.slaStatus === 'warning' || c.urgency?.toLowerCase() === 'critical')).length;
     const slaPassRate = totalDept > 0 ? Math.round(((totalDept - overdueDept) / totalDept) * 100) : 98;
     // ── Filtered Complaints for Table & Kanban ────────────────────────────────
     const filteredComplaints = deptComplaints.filter(c => {
-        const statusMatch = filterStatus === 'all' || c.status.toLowerCase() === filterStatus.toLowerCase();
+        const statusMatch = filterStatus === 'all' || (c.status || '').toLowerCase() === filterStatus.toLowerCase();
         const catMatch = filterCategory === 'all' || c.category === filterCategory;
         const prioMatch = filterPriority === 'all' || (c.urgency || c.priority || '').toLowerCase() === filterPriority.toLowerCase();
         const assigneeMatch = filterAssignee === 'all' || (c.assignedAgent?.name || '').includes(filterAssignee);
@@ -173,7 +173,7 @@ export const DeptAdminDashboard = () => {
         return statusMatch && catMatch && prioMatch && assigneeMatch && searchMatch;
     });
     // ── Needs Attention List (Overdue & Unassigned Complaints) ────────────────
-    const needsAttentionComplaints = deptComplaints.filter(c => ['submitted', 'new', 'under review'].includes(c.status.toLowerCase()) ||
+    const needsAttentionComplaints = deptComplaints.filter(c => ['pending', 'submitted', 'new', 'under review'].includes((c.status || '').toLowerCase()) ||
         c.slaStatus === 'warning' ||
         (c.urgency || '').toLowerCase() === 'critical').slice(0, 5);
     // ── Handle Card Selection for Bulk Actions ────────────────────────────────
@@ -714,15 +714,15 @@ export const DeptAdminDashboard = () => {
                     { title: 'Resolved', statusKey: 'resolved', color: 'bg-emerald-500' }
                 ].map(column => {
                     const columnTickets = filteredComplaints.filter(c => {
-                        const st = c.status.toLowerCase();
+                        const st = (c.status || '').toLowerCase();
                         if (column.statusKey === 'new')
-                            return ['submitted', 'new', 'under review'].includes(st) && !c.assignedAgent;
+                            return ['pending', 'submitted', 'new', 'under review'].includes(st);
                         if (column.statusKey === 'assigned')
-                            return ['assigned', 'under review'].includes(st) || (['submitted', 'new'].includes(st) && !!c.assignedAgent);
+                            return ['assigned'].includes(st);
                         if (column.statusKey === 'investigating')
                             return ['investigating', 'in progress'].includes(st);
                         if (column.statusKey === 'dispatched')
-                            return ['dispatched', 'waiting'].includes(st);
+                            return ['dispatched', 'waiting', 'pending student verification'].includes(st);
                         if (column.statusKey === 'resolved')
                             return ['resolved'].includes(st);
                         return false;

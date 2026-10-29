@@ -1,286 +1,219 @@
-# 🎓 Vignan's ResolveHub — Enterprise University Grievance & Smart Triage Portal
+# Vignan's ResolveHub — Student Grievance Resolution Portal
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel)](https://resolve-hub-seven.vercel.app/)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Ganesh--commit%2FResolveHub-181717?style=for-the-badge&logo=github)](https://github.com/Ganesh-commit/ResolveHub)
-[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![Express.js](https://img.shields.io/badge/Express.js-4.18-000000?style=for-the-badge&logo=express)](https://expressjs.com/)
-[![MongoDB Atlas](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-4.8-010101?style=for-the-badge&logo=socket.io)](https://socket.io/)
+ResolveHub is a role-based grievance portal for Vignan University. Students raise complaints (hostel, mess, academics, transport, IT/Wi-Fi, ragging and more). A smart routing engine sends each complaint to the right Department HOD. The Super Admin can see every complaint from every student and manage it from one dashboard.
 
-> **Vignan's ResolveHub** is a production-grade, full-stack **Student Grievance Redressal & Smart Triage Governance Portal** engineered for **Vignan's Foundation for Science, Technology & Research (Vignan University)**. It unifies students, 14+ Academic & Estate Department Heads (HODs), and the Executive SuperAdmin Desk into a real-time, SLA-enforced, AI-assisted resolution ecosystem.
+**Repository:** https://github.com/Ganesh-commit/ResolveHub
 
 ---
 
-## 🌐 Live Deployment & Repository Links
+## Screenshots
 
-- 🚀 **Live Web Application**: [https://resolve-hub-seven.vercel.app/](https://resolve-hub-seven.vercel.app/)
-- 💻 **GitHub Repository**: [https://github.com/Ganesh-commit/ResolveHub](https://github.com/Ganesh-commit/ResolveHub)
-- 👨‍💻 **Principal Architect & Author**: **Katabattula Venkata SivaSai Ganesh** ([@Ganesh-commit](https://github.com/Ganesh-commit))
+All screenshots below were taken from the running app with the seeded JSON database.
+
+### 1. Landing Page
+![Public landing page with hero banner and Submit / Track actions](docs/screenshots/landing_page.png)
+
+### 2. Student Login
+![Student sign-in modal filled with registration number 241FA07011](docs/screenshots/student_login.png)
+
+### 3. Student Dashboard (241FA07011)
+![Student dashboard showing the student's own complaints, progress bars and activity stats](docs/screenshots/student_dashboard.png)
+
+### 4. Raise Complaint Form
+![Five-step guided complaint form, step 1: category selection](docs/screenshots/raise_complaint_form.png)
+
+### 5. My Complaints
+![My Complaints page for 241FA07011 with status filters (Pending, In Progress, Resolved, Rejected)](docs/screenshots/my_complaints.png)
+
+### 6. Super Admin Dashboard: all complaints from all students
+![Super Admin registry showing 69 complaints across 48 unique registration numbers with search, filters, sorting and quick status update](docs/screenshots/super_admin_dashboard.png)
+
+### 7. Department Admin Portal (IT & Network HOD)
+![IT HOD command center with KPIs and complaints routed to the IT department](docs/screenshots/dept_admin_portal.png)
+
+### 8. AI Helper
+![ResolveHub AI Assistant chat panel with quick actions](docs/screenshots/ai_helper.png)
 
 ---
 
-## 🏗️ System Architecture & Smart Triage Flow (Mermaid.js)
+## Features
 
-### 1. High-Level Multi-Tier Architecture & Smart Routing Engine
+**Students**
+- Log in with registration number. The password is the same as the registration number for seeded accounts.
+- Raise complaints with a 5-step form: category → details & priority → location → attachments → review.
+- Dashboard and **My Complaints** pages show only your own tickets. You can filter by status and see a progress timeline for each one.
+- Two-way verification: when a HOD marks a ticket "Resolved with Proof", you can approve it or reopen it.
+- AI Assistant to track complaints, check SLA timelines and get anti-ragging emergency contacts.
 
-```mermaid
-flowchart TD
-    subgraph Client["🖥️ Frontend Client Layer (React 19 + Vite + Tailwind CSS)"]
-        SD["🎓 Student Portal & Dashboard"]
-        HD["🏢 Department HOD Command Center"]
-        SA["👑 SuperAdmin Governance Console"]
-        AI_UI["🤖 AI Triage Copilot & Politeness Rewriter"]
-    end
+**Super Admin**
+- Sees **every complaint from every student**, with Reg No, student name, category, routed department, priority, status and timestamp.
+- Search by registration number, name, ticket ID or title.
+- Filter by category, status, priority and department.
+- Sort by newest, oldest, priority or Reg No.
+- Pagination (15 / 25 / 50 per page, or show all).
+- Quick inline status update (Pending / In Progress / Resolved / Rejected), or open the full review modal to add remarks and assign staff.
+- CSV export, student signup approvals, department admin management, audit logs and analytics.
+- **Smart HOD Auto-Routing Engine** button. Cross-department or critical issues (for example ragging or harassment) stay with the Super Admin's Executive Desk.
 
-    subgraph Gateway["⚡ API & Real-Time Gateway (Node.js + Express + Socket.io)"]
-        AUTH["🔐 JWT & Bcrypt RBAC Auth Middleware"]
-        ROUTER["🧠 SuperAdmin Smart Triage & Auto-Routing Engine"]
-        SLA["⏱️ Automated 3-Tier SLA Escalation Cron Worker"]
-        VERIFY["✅ Two-Way Student Verification Controller"]
-    end
+**Department Admins / HODs**
+- See only the complaints routed to their department, in Kanban or table view.
+- Update status, assign technicians and resolve with proof.
 
-    subgraph RoutingScope["🎯 Intelligent Grievance Dispatch Targets"]
-        DEPT_HODS["🏛️ 14 Academic & Estate Department HOD Queues"]
-        EXEC_DESK["🛡️ SuperAdmin Executive Retention Desk (Cross-Dept / Critical)"]
-    end
+---
 
-    subgraph Storage["🗄️ Persistence Layer"]
-        MONGO[("🍃 MongoDB Atlas Cluster\n(Users, Staff, Tickets, SignupRequests, AuditLogs)")]
-        FS["📎 Multer Evidence & Proof Storage (/uploads)"]
-    end
+## Tech Stack
 
-    SD -->|Submit Grievance + Evidence| AUTH
-    AI_UI -->|Auto-Classify & Politeness Check| ROUTER
-    AUTH --> ROUTER
-    ROUTER -->|Domain Keyword & Dept Match| DEPT_HODS
-    ROUTER -->|Cross-Dept / Safety / Executive Scope| EXEC_DESK
-    DEPT_HODS --> HD
-    EXEC_DESK --> SA
-    HD -->|Mark Resolved with Proof| VERIFY
-    VERIFY -->|Pending Student Verification| SD
-    SD -->|Approve & Close OR Dispute & Reopen| VERIFY
-    SLA -->|Breach > 3d -> HOD / > 6d -> Dean| MONGO
-    ROUTER --> MONGO
-    VERIFY --> MONGO
-    SD --> FS
-```
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS, lucide-react, socket.io-client |
+| Backend | Node.js, Express 4, Socket.io, JWT, bcryptjs, helmet, zod |
+| Database | **JSON file database:** `server/data/resolvehub.json`, mirrored to `data/resolvehub.json` |
+| Tooling | puppeteer-core (screenshot/verification script), oxlint |
 
-### 2. Two-Way Resolution Verification & Lifecycle Sequence
+### How the JSON database works
+`server/db.js` loads `resolvehub.json` into memory at startup. It exposes models (`Ticket`, `User`, `Staff`, `SignupRequest`, `ActivityLog`, `SystemSetting`) that support the query calls the routes use (`find`, `findOne`, `sort`, `lean`, `save`, `countDocuments`, `$or`, `$regex`, `$in` …), so the routes did not have to be rewritten.
+
+Every write goes through a **serialized write queue**. Each write is a write-to-temp-file followed by a rename. Concurrent requests can't corrupt the file or lose data, and changes persist immediately. No MongoDB is needed.
+
+---
+
+## Architecture
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Student as 🎓 Student (e.g., 241FA07011)
-    participant Portal as 🌐 ResolveHub API
-    participant Engine as 🧠 Smart Triage Engine
-    actor HOD as 🏢 Department HOD / Warden
-    actor SuperAdmin as 👑 SuperAdmin Desk
-
-    Student->>Portal: POST /api/v1/tickets (Title, Category, Location, Description)
-    Portal->>Engine: smartRouteGrievance(payload)
-    alt Cross-Departmental / Critical Safety / Executive Scope
-        Engine-->>SuperAdmin: Retain at SuperAdmin Executive Desk (LEVEL_2_DEAN)
-    else Department-Specific Issue (e.g., AI GPU, CSE Lab, Wi-Fi, ECE VLSI, Hostel)
-        Engine-->>HOD: Auto-Route to Target Department HOD Queue (LEVEL_1_HOD)
-    end
-    HOD->>Portal: POST /api/v1/tickets/:id/resolve-with-proof (Remarks + Proof)
-    Portal-->>Student: Status -> "Pending Student Verification"
-    alt Student Satisfied with Resolution Proof
-        Student->>Portal: POST /api/v1/tickets/:id/verify-resolution { approved: true, rating: 5 }
-        Portal-->>HOD: Status -> "Resolved" (Closed & Signed Off)
-    else Issue Persists / Unsatisfactory
-        Student->>Portal: POST /api/v1/tickets/:id/verify-resolution { approved: false, reason }
-        Portal-->>HOD: Status -> "In Progress" (Re-opened for Re-Inspection)
-    end
+flowchart LR
+  S["Student (React)"] -->|"POST /api/v1/tickets"| API["Express API :3001"]
+  SA["Super Admin (React)"] -->|"GET /api/v1/tickets (all)"| API
+  HOD["Dept Admin (React)"] -->|"GET /api/v1/tickets?role=dept_admin"| API
+  API --> R["Smart Routing Engine"]
+  R -->|"dept issue"| HODQ["Department HOD queue"]
+  R -->|"critical / cross-dept"| EXEC["SuperAdmin Executive Desk"]
+  API <--> DB[("JSON DB: server/data/resolvehub.json")]
 ```
 
 ---
 
-## 🧠 SuperAdmin Smart Triage & Department HOD Auto-Routing Engine
+## Folder Structure
 
-Every incoming student complaint is analyzed in real time by [`server/services/smartRoutingService.js`](server/services/smartRoutingService.js):
-
-1. **Domain-Aware Department Assignment**:
-   - **CSE Lab Software / Compilers / Docker / IDEs** $\rightarrow$ Routed to **CSE HOD Admin** (`cse_hod_admin`)
-   - **AI GPU Cluster / CUDA / RTX Nodes / Deep Learning** $\rightarrow$ Routed to **AI & ML HOD** (`aiml_hod_admin`)
-   - **Campus Wi-Fi / Aruba APs / Routers / ERP Portal** $\rightarrow$ Routed to **IT & Network HOD** (`it_network_admin`)
-   - **Cyber Security SOC / Firewall / Kali Sandbox / SIEM** $\rightarrow$ Routed to **Cyber Security HOD** (`cyber_hod_admin`)
-   - **Circuit Boards / VLSI / Oscilloscopes / FPGA / Embedded** $\rightarrow$ Routed to **ECE HOD Admin** (`ece_hod_admin`)
-   - **Robotic Arms / Actuators / LiDAR / ROS / 3D Printers** $\rightarrow$ Routed to **Robotics HOD** (`robotics_hod_admin`)
-   - **Biotech Centrifuges / PCR / Food Processing / Textile Looms** $\rightarrow$ Routed to **BI&BT / Food Tech / Textile HODs**
-   - **BBA / MBA / MCA Seminar Halls, SPSS & Case Portals** $\rightarrow$ Routed to **Management HOD** (`mgmt_hod_admin`)
-   - **Hostels, Mess, RO Water, AC/Fans, Electrical, Bus Transport** $\rightarrow$ Routed to **Estate & Hostel Warden** (`estate_warden_admin`)
-2. **Executive Retention & Escalation Rule**:
-   - Cross-departmental policies, campus-wide safety/anti-ragging alerts, or issues beyond a single HOD's jurisdiction are flagged with `isRetainedBySuperAdmin: true` and `routingScope: 'SUPERADMIN_RETAINED'` for direct executive resolution by the **SuperAdmin**.
-3. **Two-Way Verification & SLA Timers**:
-   - Department HODs resolve tickets with inspection remarks/proof, transitioning the ticket to `Pending Student Verification`.
-   - The submitting student can either **Approve & Close** (marking it `Resolved` with a 1–5 star rating) or **Dispute & Re-open** (returning it to `In Progress`).
-
----
-
-## 🏛️ Supported University Departments (14 Core Academic + Estate & Management)
-
-| # | Department Code | Full Official Department Name | Assigned HOD / Admin Account |
-| :-: | :--- | :--- | :--- |
-| 1 | **CSE** | `CSE (Computer Science & Engineering)` | `cse_hod_admin` |
-| 2 | **IT** | `Information Technology (IT)` | `it_network_admin` |
-| 3 | **AI&ML** | `AI & ML (Artificial Intelligence & Machine Learning)` | `aiml_hod_admin` |
-| 4 | **Cyber Security** | `Cyber Security` | `cyber_hod_admin` |
-| 5 | **ECE** | `ECE (Electronics & Communication Engineering)` | `ece_hod_admin` |
-| 6 | **BI&BT** | `BI & BT (Bio-Informatics & Bio-Technology)` | `bibt_hod_admin` |
-| 7 | **Robotics** | `Robotics` | `robotics_hod_admin` |
-| 8 | **Food Tech** | `Food Technology` | `foodtech_hod_admin` |
-| 9 | **Textile** | `Textile Industry` | `textile_hod_admin` |
-| 10 | **CSBS** | `CS-BS (Computer Science & Business Systems)` | `csbs_hod_admin` |
-| 11 | **CSDS** | `CS-DS (Computer Science & Data Science)` | `csds_hod_admin` |
-| 12 | **BBA** | `BBA (Bachelor of Business Administration)` | `mgmt_hod_admin` |
-| 13 | **MBA** | `MBA (Master of Business Administration)` | `mgmt_hod_admin` |
-| 14 | **MCA** | `MCA (Master of Computer Applications)` | `mgmt_hod_admin` |
-| 15 | **Estate & Hostels** | `Estate & Hostel Management` | `estate_warden_admin` |
+```
+complaint11/
+├── src/                          # React frontend (Vite)
+│   ├── components/               # SuperAdminDashboard, DeptAdminDashboard, StudentDashboard,
+│   │                             # MyComplaintsSection, HeroSection (complaint form), LoginModal,
+│   │                             # AdvancedAIChatbot, PublicLandingPage, ...
+│   ├── context/ResolveHubContext.jsx   # global state, auth, complaint actions
+│   └── services/api.js           # REST client (http://localhost:3001/api/v1)
+├── server/                       # Express backend
+│   ├── index.js                  # app, CORS, Socket.io, route mounts
+│   ├── db.js                     # JSON file database engine
+│   ├── data/resolvehub.json      # the database
+│   ├── routes/                   # tickets.js, auth.js, aiAssistant.js, public.js
+│   ├── services/                 # smartRoutingService, aiCategorizerService, slaEscalationService
+│   └── scripts/
+│       ├── seedJsonDatabase.js   # regenerates sample students + complaints
+│       └── verifyAndCaptureScreenshots.js  # end-to-end check + README screenshots
+├── data/resolvehub.json          # mirror copy of the database
+└── docs/screenshots/             # README images
+```
 
 ---
 
-## 🔑 Role-Based Access Control (RBAC) Credentials Table
+## Setup & Run
 
-### 👑 1. Executive SuperAdmin & Primary Student Account
+**Prerequisites:** Node.js 18 or newer.
 
-| Role | Username / Reg No | Password | Scope & Permissions |
-| :--- | :--- | :--- | :--- |
-| 👑 **Super Admin** | `ksaiganesh64` | `SAI@@@killer197712200611` | Full executive governance, Smart Triage Auto-Routing, student signup approvals, HOD provisioning, SLA & system settings |
-| 🎓 **Primary Student** | `241FA07011` | `241FA07011` | Pre-seeded with **20 diverse, realistic complaints** across Academic, Hostel, IT/Lab, Transport, Mess, Electrical & Library |
-| 🎓 **Sample Student Range** | `241FA07012` – `241FA07200` | `<Same as Reg No>` | 189 active student accounts across all 14 departments with multi-department analytical grievance data |
-
-### 🏢 2. Department HOD & Estate Warden Credentials
-
-| Department / Administrative Role | Username | Password | Jurisdiction Scope |
-| :--- | :--- | :--- | :--- |
-| **CSE HOD Admin** | `cse_hod_admin` | `VignanCSE@2026` | CSE Labs, Compilers, Cloud & Programming Infrastructure, CSE Academics |
-| **IT & Network HOD** | `it_network_admin` | `VignanIT@2026` | Campus Wi-Fi, Optical Fiber Switches, ERP/LMS Portals, IT Department |
-| **AI & ML HOD** | `aiml_hod_admin` | `VignanAIML@2026` | AI Research Center, NVIDIA GPU Clusters, Deep Learning Labs & Academics |
-| **Cyber Security HOD** | `cyber_hod_admin` | `VignanCyber@2026` | SOC Lab, VLAN Firewalls, Kali Sandboxes, SIEM & Network Security |
-| **ECE HOD Admin** | `ece_hod_admin` | `VignanECE@2026` | VLSI, Embedded Systems, Oscilloscopes, PCB & Communication Labs |
-| **Robotics HOD** | `robotics_hod_admin` | `VignanRobotics@2026` | Robotics & Mechatronics Lab, Actuators, LiDAR, Drones & 3D Printers |
-| **Management (BBA/MBA/MCA) HOD** | `mgmt_hod_admin` | `VignanMgmt@2026` | BBA, MBA, and MCA Academic Blocks, Seminar Halls & Analytics Labs |
-| **Estate & Hostel Warden** | `estate_warden_admin` | `VignanEstate@2026` | Boys/Girls Hostels, Mess & Canteens, RO Water, Electrical, HVAC & Bus Transport |
-| **BI & BT HOD** | `bibt_hod_admin` | `VignanBIBT@2026` | Bio-Informatics & Bio-Technology Molecular Labs & Equipment |
-| **Food Technology HOD** | `foodtech_hod_admin` | `VignanFood@2026` | Food Processing Pilot Plants, Pasteurization & Quality Labs |
-| **Textile Industry HOD** | `textile_hod_admin` | `VignanTextile@2026` | Weaving Studio, Spinning Units & Fabric Testing Labs |
-| **CSBS HOD** | `csbs_hod_admin` | `VignanCSBS@2026` | Computer Science & Business Systems Enterprise ERP Labs |
-| **CSDS HOD** | `csds_hod_admin` | `VignanCSDS@2026` | Computer Science & Data Science Big Data / Spark Clusters |
-
----
-
-## 📸 Visual Interface Gallery
-
-### 🏛️ 1. Super Admin Governance Console & Manage Navigation
-![Super Admin Manage Header](docs/images/superadmin_manage_header.png)
-
-### 🌐 2. Full-Width Edge-to-Edge Campus Grievance Portal
-![Portal Hero Banner](docs/images/portal_hero_banner.png)
-
-### 📝 3. Student Registration & Account Verification Hub
-![Student Registration Request](docs/images/student_registration_request.png)
-
-### 📎 4. Evidence Attachments & Image Lightbox Preview
-![Complaint Attachments & Lightbox](docs/images/complaint_attachments_lightbox.png)
-
-### 📑 5. Smart Grievance Submission Form
-![Student Report Form](docs/images/student_report_form.png)
-
-### ⏱️ 6. Student Dashboard & Live SLA Resolution Stepper
-![Student Dashboard Timeline](docs/images/student_dashboard_timeline.png)
-
-### 📊 7. Real-Time Department Analytics & Heatmap Reports
-![Analytics Reports](docs/images/analytics_reports.png)
-
----
-
-## 📡 Complete REST API Reference (`/api/v1`)
-
-| Method | Endpoint | Access Role | Description |
-| :---: | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/login` | Public | Authenticates SuperAdmin, Department HOD, or Student (`regNo` / `username` + `password`) |
-| `GET` | `/api/v1/auth/me` | Authenticated | Verifies active JWT session and returns user profile & role |
-| `POST` | `/api/v1/auth/signup-request` | Public | Submits a new student registration request for SuperAdmin verification |
-| `GET` | `/api/v1/auth/signup-requests` | SuperAdmin | Lists all student signup requests (`PENDING`, `APPROVED`, `REJECTED`) |
-| `POST` | `/api/v1/auth/signup-requests/:id/approve` | SuperAdmin | Approves student registration request and provisions active account |
-| `POST` | `/api/v1/auth/signup-requests/:id/reject` | SuperAdmin | Rejects student signup request with an audit reason |
-| `GET` | `/api/v1/auth/students` | SuperAdmin | Lists all active student accounts (`241FA07011` – `241FA07200`) |
-| `GET` | `/api/v1/auth/admins` | SuperAdmin | Lists all Department HOD & Admin accounts |
-| `POST` | `/api/v1/auth/admins` | SuperAdmin | Provisions a new Department HOD / Admin account |
-| `GET` | `/api/v1/tickets` | Scoped RBAC | Returns all tickets (SuperAdmin), HOD-scoped tickets (`dept_admin`), or student's own tickets (`student`) |
-| `POST` | `/api/v1/tickets` | Student / Admin | Creates a new grievance ticket and runs the **Smart HOD Auto-Routing Engine** |
-| `POST` | `/api/v1/tickets/smart-route-all` | SuperAdmin | Batch-executes the Smart Triage & HOD Auto-Routing Engine across pending tickets |
-| `PATCH` | `/api/v1/tickets/:id/smart-route` | SuperAdmin | Routes a ticket to a specific HOD or retains it at the SuperAdmin Executive Desk |
-| `POST` | `/api/v1/tickets/:id/resolve-with-proof` | Dept HOD / Admin | Marks a ticket as `Pending Student Verification` with inspection remarks & proof |
-| `POST` | `/api/v1/tickets/:id/verify-resolution` | Student | Two-Way Verification: Student approves (`Resolved`) or disputes (`In Progress` + Reopen) |
-| `PATCH` | `/api/v1/tickets/:id/status` | Dept HOD / Admin | Updates ticket status, timeline stage, and official response remarks |
-| `PATCH` | `/api/v1/tickets/:id/assign` | Dept HOD / Admin | Assigns a field specialist or department technician to the ticket |
-| `POST` | `/api/v1/tickets/run-sla-escalation` | System / Admin | Triggers the 3-tier SLA escalation worker (`LEVEL_0` $\rightarrow$ `LEVEL_1_HOD` $\rightarrow$ `LEVEL_2_DEAN`) |
-| `POST` | `/api/v1/ai/chat` | Student / Admin | Conversational AI Triage Copilot with emergency keyword detection & tool execution |
-| `POST` | `/api/v1/ai/smart-suggest` | Student | Real-time AI category, priority, SLA target, and politeness rewrite suggestions |
-
----
-
-## 🚀 Local Setup & Installation Guide
-
-### Prerequisites
-- **Node.js** `v18+` and **npm**
-- **MongoDB** (MongoDB Atlas URI or local `mongodb://127.0.0.1:27017/resolvehub`)
-
-### 1. Clone the Repository & Install Dependencies
 ```bash
 git clone https://github.com/Ganesh-commit/ResolveHub.git
-cd complaint11
+cd ResolveHub
 
-# Install frontend dependencies
+# install
 npm install
+npm --prefix server install
 
-# Install backend dependencies
-cd server
-npm install
-cd ..
-```
+# (optional) regenerate the sample JSON database
+node server/scripts/seedJsonDatabase.js
 
-### 2. Configure Environment Variables (`server/.env`)
-Create `server/.env` (or copy `server/.env.example`):
-```env
-PORT=3001
-MONGODB_URI=mongodb://127.0.0.1:27017/resolvehub
-JWT_SECRET=vignan_resolvehub_super_secret_jwt_key_2026
-SUPERADMIN_USERNAME=ksaiganesh64
-SUPERADMIN_PASSWORD=SAI@@@killer197712200611
-DEMO_STUDENT_REG_NO=241FA07011
-DEMO_STUDENT_PASSWORD=241FA07011
-```
-
-### 3. Run the Comprehensive Database Seeder
-Seeds all 14+ Department HOD accounts, preserves `241FA07011` and `SuperAdmin`, seeds student range `241FA07012`–`241FA07200`, injects 20 diverse complaints for `241FA07011`, and seeds multi-department analytical tickets:
-```bash
-npm --prefix server run seed
-```
-
-### 4. Launch Backend & Frontend Servers
-```bash
-# Terminal 1: Start Express + Socket.io Backend (Port 3001)
+# start backend (http://localhost:3001)
 npm --prefix server start
 
-# Terminal 2: Start Vite + React Frontend (Port 5173 / 5174)
+# in a second terminal, start frontend (http://localhost:5173)
 npm run dev
 ```
 
----
-
-## 👨‍💻 Author & Credits
-
-**Katabattula Venkata SivaSai Ganesh**  
-- **GitHub**: [@Ganesh-commit](https://github.com/Ganesh-commit)  
-- **Institution**: Vignan's Foundation for Science, Technology & Research (Vignan University)  
-- **Project**: *Vignan's ResolveHub — Enterprise Student Grievance Resolution & Smart Triage Portal*
+- If `resolvehub.json` is missing or has fewer than 60 complaints, the server seeds it automatically on startup.
+- CORS accepts any `localhost` / `127.0.0.1` port, so the app works even if Vite falls back to port 5174.
+- To re-run the end-to-end checks and refresh the screenshots (backend and frontend must be running): `node server/scripts/verifyAndCaptureScreenshots.js`. The script expects the frontend on port 5174. If yours is on a different port, edit `FRONTEND_URL` at the top of the script.
 
 ---
 
-## 📜 License
+## Test Accounts
 
-Copyright © 2026 **Katabattula Venkata SivaSai Ganesh** (`@Ganesh-commit`). Built for **Vignan University**. All rights reserved.
+### Students
+| Account | Reg No | Password |
+|---|---|---|
+| **Main test account** (Katabattula Venkata SivaSai Ganesh) | `241FA07011` | `241FA07011` |
+| Any seeded student | e.g. `241FA07001`, `231FA07015`, `251FA07035` | **same as Reg No** |
+
+### Admins
+| Role | Username | Password |
+|---|---|---|
+| Super Admin | `ksaiganesh64` | `SAI@@@killer197712200611` |
+| Super Admin (alt) | `superadmin` | `admin123` |
+| CSE HOD | `cse_hod_admin` | `VignanCSE@2026` |
+| IT & Network HOD | `it_network_admin` | `VignanIT@2026` |
+| AI & ML HOD | `aiml_hod_admin` | `VignanAIML@2026` |
+| Cyber Security HOD | `cyber_hod_admin` | `VignanCyber@2026` |
+| ECE HOD | `ece_hod_admin` | `VignanECE@2026` |
+| Robotics HOD | `robotics_hod_admin` | `VignanRobotics@2026` |
+| Management (BBA/MBA/MCA) HOD | `mgmt_hod_admin` | `VignanMgmt@2026` |
+| Estate & Hostel Warden | `estate_warden_admin` | `VignanEstate@2026` |
+
+> These are demo credentials for local testing only. Change them before deploying anywhere public.
+
+---
+
+## Sample Data
+
+| Item | Count |
+|---|---|
+| Student accounts | **48**: `241FA07001`–`241FA07040` (40), plus `231FA07004/015/027/038` (4 seniors) and `251FA07002/014/026/035` (4 freshers) |
+| Complaints | **69** (68 seeded + 1 raised live during testing, `RP-1079`) |
+| Unique registration numbers with complaints | **48**. Every student has at least 1 complaint, and several have 2–3 |
+| `241FA07011` complaints | **7** (Pending, In Progress, Resolved and Rejected) |
+| Pending signup requests | 2 (for testing the approval flow) |
+| Date range | Aug – Oct 2026 |
+
+**Categories:** Hostel & Facilities, Mess & Dining, Academics, Transport, Library, Infrastructure & Maintenance, Finance & Scholarship, Anti-Ragging & Harassment, IT & Wi-Fi, Examinations, Electrical, Sanitation & Hygiene.
+**Priorities:** Low, Medium, High, Urgent.  **Statuses:** Pending, In Progress, Resolved, Rejected.
+
+**Departments:** CSE, IT, AI & ML, Cyber Security, ECE, BI & BT, Robotics, Food Technology, Textile Industry, CS-BS, CS-DS, BBA, MBA, MCA, and Estate & Hostel Management.
+
+---
+
+## API Reference (main endpoints)
+
+Base URL: `http://localhost:3001/api/v1`
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/auth/login` | Login (student Reg No or admin username) |
+| GET | `/auth/me` | Current user profile |
+| POST | `/auth/signup-request` | Student account request |
+| GET | `/auth/signup-requests` | List requests (Super Admin) |
+| GET | `/auth/students` · `/auth/admins` | Manage accounts (Super Admin) |
+| GET | `/tickets` | All tickets (Super Admin). Use `?role=student&regNo=` or `?role=dept_admin&department=` to scope. Supports `category`, `status`, `priority`, `q` |
+| POST | `/tickets` | Raise a complaint |
+| GET | `/tickets/:id` · `/tickets/track/:id` | Ticket detail / public tracking |
+| PATCH | `/tickets/:id/status` | Update status and remarks |
+| PATCH | `/tickets/:id/assign` | Assign staff / department |
+| POST | `/tickets/:id/notes` | Add admin remarks |
+| POST | `/tickets/smart-route-all` | Run the Smart HOD Auto-Routing Engine |
+| POST | `/tickets/:id/resolve-with-proof` | HOD resolves → Pending Student Verification |
+| POST | `/tickets/:id/verify-resolution` | Student approves or reopens |
+| POST | `/ai/chat` | AI Assistant |
+| GET | `/health` | Health check |
+
+---
+
+## Author
+
+**Katabattula Venkata SivaSai Ganesh** — [@Ganesh-commit](https://github.com/Ganesh-commit)

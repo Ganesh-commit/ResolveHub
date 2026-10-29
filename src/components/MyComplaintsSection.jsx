@@ -19,17 +19,19 @@ export const MyComplaintsSection = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [sortBy, setSortBy] = useState('newest');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
     const filteredComplaints = studentComplaints.filter(c => {
         const matchesSearch = c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const sLow = (c.status || '').toLowerCase();
         const matchesStatus = statusFilter === 'All' ||
-            (statusFilter === 'Pending' && (c.status === 'Submitted' || c.status === 'Under Review' || c.status === 'new')) ||
-            (statusFilter === 'In Progress' && (c.status === 'In Progress' || c.status === 'investigating' || c.status === 'Assigned' || c.status === 'Pending Student Verification')) ||
-            (statusFilter === 'Resolved' && c.status === 'Resolved') ||
-            (statusFilter === 'Escalated' && (c.isEscalated || c.status === 'Escalated'));
+            (statusFilter === 'Pending' && ['pending', 'submitted', 'under review', 'new'].includes(sLow)) ||
+            (statusFilter === 'In Progress' && ['in progress', 'investigating', 'dispatched', 'assigned', 'pending student verification'].includes(sLow)) ||
+            (statusFilter === 'Resolved' && sLow === 'resolved') ||
+            (statusFilter === 'Rejected' && sLow === 'rejected') ||
+            (statusFilter === 'Escalated' && (c.isEscalated || sLow === 'escalated'));
         return matchesSearch && matchesStatus;
     });
     // Sort complaints
@@ -91,7 +93,7 @@ export const MyComplaintsSection = () => {
 
         {/* Filter Chips */}
         <div className="flex items-center gap-2 overflow-x-auto text-xs font-bold pt-1">
-          {['All', 'Pending', 'In Progress', 'Resolved', 'Escalated'].map(chip => (<button key={chip} onClick={() => {
+          {['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'].map(chip => (<button key={chip} onClick={() => {
                 setStatusFilter(chip);
                 setCurrentPage(1);
             }} className={`px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap ${statusFilter === chip

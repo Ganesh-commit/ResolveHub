@@ -31,9 +31,16 @@ const PORT = process.env.PORT || 3001;
 app.use(compression());
 
 // ── Socket.io Setup ──────────────────────────────────────────────────────────
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  if (origin.endsWith('.vercel.app')) return true;
+  return false;
+};
+
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -50,7 +57,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// ── Connect MongoDB & Start Workers ─────────────────────────────────────────
+// ── Connect JSON Database & Start Workers ───────────────────────────────────
 connectDB().then(() => {
   startSLAWorkerInterval();
 });
@@ -61,22 +68,15 @@ app.use(helmet({
 }));
 app.use(mongoSanitize());
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'https://resolve-hub-seven.vercel.app'
-];
-
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error('CORS policy violation: Origin not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token', 'x-user-regno', 'x-user-name', 'x-user-email'],
   credentials: true
 }));
 

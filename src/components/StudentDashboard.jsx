@@ -29,9 +29,9 @@ export const StudentDashboard = () => {
     });
     // Statistics calculation
     const totalMy = myComplaints.length;
-    const pendingMy = myComplaints.filter(c => ['new', 'submitted', 'under review'].includes(c.status.toLowerCase())).length;
-    const inProgressMy = myComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned', 'pending student verification'].includes(c.status.toLowerCase())).length;
-    const resolvedMy = myComplaints.filter(c => ['resolved'].includes(c.status.toLowerCase())).length;
+    const pendingMy = myComplaints.filter(c => ['pending', 'new', 'submitted', 'under review'].includes((c.status || '').toLowerCase())).length;
+    const inProgressMy = myComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned', 'pending student verification'].includes((c.status || '').toLowerCase())).length;
+    const resolvedMy = myComplaints.filter(c => ['resolved'].includes((c.status || '').toLowerCase())).length;
     // Banner bug fix: check for latest resolved complaint banner vs registration approved banner
     const latestResolved = myComplaints.find(c => c.status === 'Resolved');
     // Generate 90-day activity heatmap grid data

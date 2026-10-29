@@ -61,18 +61,20 @@ export const HeroSection = () => {
         setIsSubmitting(true);
         try {
             const generatedId = submitComplaint({
+                title: title.trim(),
                 category,
-                department: 'Department Desk',
-                description: `[${title}] ${description}`,
+                priority,
+                isAnonymous,
+                description: description.trim(),
                 location: location || 'Online / No Location',
                 attachments: attachedFiles
             });
             setIsSubmitting(false);
-            setSubmittedId(generatedId || `#RH-${Math.floor(1000 + Math.random() * 9000)}`);
+            setSubmittedId(generatedId || `RP-${Math.floor(1000 + Math.random() * 9000)}`);
         }
         catch (err) {
             setIsSubmitting(false);
-            setSubmittedId(`#RH-${Math.floor(1000 + Math.random() * 9000)}`);
+            setSubmittedId(`RP-${Math.floor(1000 + Math.random() * 9000)}`);
         }
     };
     // If already submitted, display Success Screen
