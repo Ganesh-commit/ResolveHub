@@ -27,7 +27,7 @@ export const MyComplaintsSection = () => {
             c.description.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'All' ||
             (statusFilter === 'Pending' && (c.status === 'Submitted' || c.status === 'Under Review' || c.status === 'new')) ||
-            (statusFilter === 'In Progress' && (c.status === 'In Progress' || c.status === 'investigating' || c.status === 'Assigned')) ||
+            (statusFilter === 'In Progress' && (c.status === 'In Progress' || c.status === 'investigating' || c.status === 'Assigned' || c.status === 'Pending Student Verification')) ||
             (statusFilter === 'Resolved' && c.status === 'Resolved') ||
             (statusFilter === 'Escalated' && (c.isEscalated || c.status === 'Escalated'));
         return matchesSearch && matchesStatus;

@@ -5,6 +5,7 @@ const fs = require('fs');
 const { Ticket, uuidv4, logActivity } = require('../db');
 const { uploadAttachments } = require('../middleware/uploadAttachment');
 const { analyzeGrievanceText, checkDuplicateCluster } = require('../services/aiCategorizerService');
+const { smartRouteGrievance, getDepartmentRegexForHOD } = require('../services/smartRoutingService');
 
 const now = () => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 const today = () => new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -12,14 +13,14 @@ const today = () => new Date().toLocaleDateString('en-IN', { day: '2-digit', mon
 // ── GET /api/tickets — Role-based Scoped Querying & Multi-Filtering ─────────────
 router.get('/', async (req, res) => {
   try {
-    const { role, department, regNo, category, status, priority, q } = req.query;
+    const { role, department, username, regNo, category, status, priority, q } = req.query;
     let queryFilter = {};
 
     // 1. Role-based Scoping Guard
-    if (role === 'dept_admin' && department) {
-      // Support matching full name "Information Technology (IT)" or short name "Information Technology"
-      const deptPattern = department.replace(/\s*\(.*?\)/, '').trim();
-      queryFilter.department = { $regex: deptPattern, $options: 'i' };
+    if (role === 'dept_admin' && (department || username)) {
+      const deptRegex = getDepartmentRegexForHOD(department || '', username || '');
+      queryFilter.department = { $regex: deptRegex };
+      queryFilter.isRetainedBySuperAdmin = { $ne: true };
     } else if (role === 'student' && regNo) {
       const cleanRegNo = regNo.trim().toUpperCase();
       queryFilter.$or = [
@@ -46,6 +47,12 @@ router.get('/', async (req, res) => {
     }
 
     let tickets = await Ticket.find(queryFilter).sort({ createdAt: -1 }).lean();
+
+    // Ensure submittedAt is always populated alongside createdAt for frontend tables
+    tickets = tickets.map(t => ({
+      ...t,
+      submittedAt: t.submittedAt || t.createdAt
+    }));
 
     // Mask student identity if isAnonymous is true and requesting user is staff/dept_admin
     if (role === 'dept_admin') {
@@ -294,29 +301,26 @@ router.post('/', (req, res, next) => {
     const emailClean = studentEmail || `${regNoClean.toLowerCase()}@campus.edu`;
 
     const aiInfo = analyzeGrievanceText(description);
+    const titleExtract = title || (description.length > 55 ? description.substring(0, 52) + '...' : description);
 
-    const deptMap = {
-      'Transport': 'Information Technology (IT)',
-      'Examinations': 'CSE (Computer Science & Engineering)',
-      'Library': 'Information Technology (IT)',
-      'Canteen & Food': 'Information Technology (IT)',
-      'Security & Safety': 'EEE (Electrical & Electronics Engineering)',
-      'Placements & Training': 'Information Technology (IT)',
-      'Infrastructure & Maintenance': 'Mechanical Engineering',
-      'Sports & Clubs': 'Mechanical Engineering',
-      'Administration & Certificates': 'CS-BS (Computer Science & Business Systems)',
-      'Health & Medical': 'BI & BT (Bio-Informatics & Bio-Technology)',
-      'Faculty & Teaching': 'ECE (Electronics & Communication Engineering)',
-      'Others': 'Information Technology (IT)'
-    };
+    // Run SuperAdmin Smart Triage & Department HOD Auto-Routing Engine
+    const smartRouting = smartRouteGrievance({
+      title: titleExtract,
+      description,
+      category,
+      location,
+      studentDept: studentDept || reqDept,
+      urgency
+    });
 
-    const assignedDepartment = reqDept || deptMap[category] || aiInfo.department || 'Information Technology (IT)';
+    const assignedDepartment = smartRouting.isRetainedBySuperAdmin
+      ? 'SuperAdmin Executive Desk'
+      : (reqDept || smartRouting.targetDepartment || aiInfo.department || 'Information Technology (IT)');
+
     const etaMap = { critical: 120, urgent: 120, high: 240, medium: 480, low: 960 };
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const newId = `RP-${randNum}`;
     const timestamp = `${today()}, ${now()}`;
-
-    const titleExtract = title || (description.length > 55 ? description.substring(0, 52) + '...' : description);
 
     // Process Attachments (Multipart uploaded files or JSON array)
     let processedAttachments = [];
@@ -363,7 +367,7 @@ router.post('/', (req, res, next) => {
       department: assignedDepartment,
       urgency: urgency.toLowerCase(),
       priority: urgency.toLowerCase() === 'critical' ? 'Urgent' : 'Medium',
-      status: 'Submitted',
+      status: smartRouting.isRetainedBySuperAdmin ? 'Under Review' : 'Assigned',
       slaStatus: urgency.toLowerCase() === 'critical' ? 'warning' : 'normal',
       isAnonymous: Boolean(isAnonymous),
       anonymousAlias: isAnonymous ? 'Anonymous Student (Shielded)' : undefined,
@@ -374,7 +378,12 @@ router.post('/', (req, res, next) => {
       description,
       aiSuggestedCategory: aiInfo.category,
       aiSuggestedPriority: aiInfo.priority,
-      aiSuggestedDept: aiInfo.department,
+      aiSuggestedDept: smartRouting.targetDepartment || aiInfo.department,
+      isRetainedBySuperAdmin: smartRouting.isRetainedBySuperAdmin,
+      routingScope: smartRouting.routingScope,
+      routingReason: smartRouting.routingReason,
+      escalationLevel: smartRouting.escalationLevel,
+      slaDeadline: new Date(Date.now() + (smartRouting.slaHours || 24) * 60 * 60 * 1000),
       complainant: {
         regNo: regNoClean,
         name: nameClean,
@@ -383,21 +392,32 @@ router.post('/', (req, res, next) => {
         department: studentDept || 'Engineering'
       },
       submittedBy: isAnonymous ? 'Confidential Anonymous Submission' : `Reg No: ${regNoClean} (${emailClean})`,
-      assignedAgent: null,
-      responseRemarks: '',
-      eta: '3 Business Days (SLA Target)',
+      assignedAgent: smartRouting.assignedHOD || null,
+      responseRemarks: smartRouting.routingReason,
+      eta: `${smartRouting.slaHours || 24} Hours (SLA Target)`,
       etaMinutesLeft: etaMap[urgency.toLowerCase()] || 480,
+      submittedAt: timestamp,
       createdAt: timestamp,
       updatedAt: timestamp,
       attachments: processedAttachments,
-      auditLogs: [{
-        id: uuidv4(),
-        timestamp: now(),
-        author: isAnonymous ? 'Anonymous Student' : `Student ${regNoClean}`,
-        role: 'Student',
-        action: isAnonymous ? 'Anonymous Complaint Logged' : 'Complaint Logged',
-        note: `Registered with ${urgency.toUpperCase()} priority. ${isAnonymous ? '[Identity Shielded for Welfare]' : ''}`
-      }]
+      auditLogs: [
+        {
+          id: uuidv4(),
+          timestamp: now(),
+          author: 'SuperAdmin Smart Triage Engine',
+          role: 'Automated Triage Bot',
+          action: smartRouting.isRetainedBySuperAdmin ? 'Retained by SuperAdmin' : `Auto-Routed -> ${smartRouting.assignedHOD?.role || assignedDepartment}`,
+          note: smartRouting.routingReason
+        },
+        {
+          id: uuidv4(),
+          timestamp: now(),
+          author: isAnonymous ? 'Anonymous Student' : `Student ${regNoClean}`,
+          role: 'Student',
+          action: isAnonymous ? 'Anonymous Complaint Logged' : 'Complaint Logged',
+          note: `Registered with ${urgency.toUpperCase()} priority. ${isAnonymous ? '[Identity Shielded for Welfare]' : ''}`
+        }
+      ]
     });
 
     await newTicket.save();
@@ -415,6 +435,242 @@ router.post('/run-sla-escalation', async (req, res) => {
     const { runSLAEscalationCheck } = require('../services/slaEscalationService');
     const result = await runSLAEscalationCheck();
     res.json({ success: true, message: `SLA Escalation worker executed. ${result.escalatedCount || 0} tickets escalated.`, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/tickets/smart-route-all — SuperAdmin Smart Triage Auto-Routing Engine ──
+router.post('/smart-route-all', async (req, res) => {
+  try {
+    const tickets = await Ticket.find({
+      status: { $in: ['Submitted', 'new', 'Assigned', 'Under Review'] }
+    });
+
+    let routedToHODCount = 0;
+    let retainedBySuperAdminCount = 0;
+    const timestamp = `${today()}, ${now()}`;
+
+    for (const ticket of tickets) {
+      const smartRouting = smartRouteGrievance({
+        title: ticket.title,
+        description: ticket.description,
+        category: ticket.category,
+        location: ticket.location,
+        studentDept: ticket.complainant?.department || ticket.department,
+        urgency: ticket.urgency || ticket.priority
+      });
+
+      ticket.department = smartRouting.isRetainedBySuperAdmin ? 'SuperAdmin Executive Desk' : smartRouting.targetDepartment;
+      ticket.assignedAgent = smartRouting.assignedHOD;
+      ticket.isRetainedBySuperAdmin = smartRouting.isRetainedBySuperAdmin;
+      ticket.routingScope = smartRouting.routingScope;
+      ticket.routingReason = smartRouting.routingReason;
+      ticket.escalationLevel = smartRouting.escalationLevel;
+      if (ticket.status === 'Submitted' || ticket.status === 'new') {
+        ticket.status = smartRouting.isRetainedBySuperAdmin ? 'Under Review' : 'Assigned';
+      }
+      ticket.updatedAt = timestamp;
+
+      ticket.auditLogs.unshift({
+        id: uuidv4(),
+        timestamp: now(),
+        author: 'SuperAdmin Smart Triage Engine',
+        role: 'Automated Triage Bot',
+        action: smartRouting.isRetainedBySuperAdmin ? 'Retained by SuperAdmin' : `Auto-Routed -> ${smartRouting.assignedHOD.role}`,
+        note: smartRouting.routingReason
+      });
+
+      await ticket.save();
+      if (smartRouting.isRetainedBySuperAdmin) retainedBySuperAdminCount++;
+      else routedToHODCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Smart Triage Complete: ${routedToHODCount} routed to Department HODs, ${retainedBySuperAdminCount} retained by SuperAdmin.`,
+      data: { routedToHODCount, retainedBySuperAdminCount, totalProcessed: tickets.length }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── PATCH /api/tickets/:id/smart-route — Route or Retain Single Ticket ─────
+router.patch('/:id/smart-route', async (req, res) => {
+  try {
+    const { retainBySuperAdmin, department, reason } = req.body;
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+
+    const timestamp = `${today()}, ${now()}`;
+    if (retainBySuperAdmin) {
+      ticket.isRetainedBySuperAdmin = true;
+      ticket.routingScope = 'SUPERADMIN_RETAINED';
+      ticket.department = 'SuperAdmin Executive Desk';
+      ticket.escalationLevel = 'LEVEL_2_DEAN';
+      ticket.routingReason = reason || 'Retained by SuperAdmin for direct executive resolution.';
+      ticket.assignedAgent = {
+        name: 'System Super Admin (K Sai Ganesh)',
+        role: 'Super Admin Executive Desk',
+        department: 'All Departments'
+      };
+    } else {
+      const smartRouting = smartRouteGrievance({
+        title: ticket.title,
+        description: ticket.description,
+        category: ticket.category,
+        location: ticket.location,
+        studentDept: department || ticket.complainant?.department || ticket.department,
+        urgency: ticket.urgency || ticket.priority
+      });
+      ticket.isRetainedBySuperAdmin = false;
+      ticket.routingScope = 'DEPT_HOD_ROUTED';
+      ticket.department = department || smartRouting.targetDepartment;
+      ticket.assignedAgent = smartRouting.assignedHOD;
+      ticket.routingReason = reason || smartRouting.routingReason;
+      ticket.status = ticket.status === 'Submitted' || ticket.status === 'new' ? 'Assigned' : ticket.status;
+    }
+
+    ticket.updatedAt = timestamp;
+    ticket.auditLogs.unshift({
+      id: uuidv4(),
+      timestamp: now(),
+      author: 'Super Admin',
+      role: 'Super Admin',
+      action: ticket.isRetainedBySuperAdmin ? 'Retained by SuperAdmin' : `Smart Routed -> ${ticket.department}`,
+      note: ticket.routingReason
+    });
+
+    await ticket.save();
+    res.json({ success: true, message: ticket.routingReason, data: ticket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/tickets/:id/resolve-with-proof — HOD Marks Resolved with Proof ─
+router.post('/:id/resolve-with-proof', async (req, res) => {
+  try {
+    const { remarks, proofUrl = '', updatedBy = 'Department HOD' } = req.body;
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+
+    const timestamp = `${today()}, ${now()}`;
+    const proofRemarks = remarks || 'Issue resolved with field inspection proof. Awaiting student two-way verification.';
+
+    ticket.status = 'Pending Student Verification';
+    ticket.responseRemarks = proofRemarks;
+    ticket.updatedAt = timestamp;
+    ticket.resolutionProof = {
+      remarks: proofRemarks,
+      proofUrl,
+      resolvedByHOD: updatedBy,
+      resolvedAt: timestamp,
+      verifiedByStudent: false,
+      studentVerifiedAt: ''
+    };
+
+    if (ticket.timeline) {
+      const stepAssigned = ticket.timeline.find(t => t.stepKey === 'assigned');
+      const stepProgress = ticket.timeline.find(t => t.stepKey === 'in_progress');
+      if (stepAssigned) stepAssigned.completed = true;
+      if (stepProgress) {
+        stepProgress.completed = true;
+        stepProgress.timestamp = new Date();
+        stepProgress.note = proofRemarks;
+      }
+    }
+
+    ticket.auditLogs.unshift({
+      id: uuidv4(),
+      timestamp: now(),
+      author: updatedBy,
+      role: 'Department HOD',
+      action: 'Resolved with Proof -> Pending Student Verification',
+      note: proofRemarks
+    });
+
+    await ticket.save();
+    res.json({
+      success: true,
+      message: 'Ticket marked as Pending Student Verification with resolution proof.',
+      data: ticket
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/tickets/:id/verify-resolution — Student Two-Way Verification ───
+router.post('/:id/verify-resolution', async (req, res) => {
+  try {
+    const { approved = true, rating = 5, feedback = '', reason = '' } = req.body;
+    const ticket = await Ticket.findOne({ id: req.params.id });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Complaint not found' });
+
+    const timestamp = `${today()}, ${now()}`;
+    const studentAuthor = ticket.isAnonymous ? 'Anonymous Student' : (ticket.complainant?.name || 'Student');
+
+    if (approved) {
+      ticket.status = 'Resolved';
+      ticket.rating = Number(rating) || 5;
+      ticket.ratingFeedback = feedback || 'Verified and approved by student.';
+      ticket.updatedAt = timestamp;
+      if (!ticket.resolutionProof) ticket.resolutionProof = {};
+      ticket.resolutionProof.verifiedByStudent = true;
+      ticket.resolutionProof.studentVerifiedAt = timestamp;
+
+      if (ticket.timeline) {
+        ticket.timeline.forEach(t => {
+          t.completed = true;
+          if (!t.timestamp) t.timestamp = new Date();
+        });
+      }
+
+      ticket.auditLogs.unshift({
+        id: uuidv4(),
+        timestamp: now(),
+        author: studentAuthor,
+        role: 'Student',
+        action: 'Student Verified & Approved Resolution',
+        note: `Two-Way Verification Approved (${ticket.rating}/5 Stars). ${feedback}`
+      });
+
+      await ticket.save();
+      return res.json({
+        success: true,
+        message: 'Resolution verified and closed by student!',
+        data: ticket
+      });
+    } else {
+      ticket.status = 'In Progress';
+      ticket.isReopened = true;
+      ticket.reopenReason = reason || 'Student disputed resolution proof; issue persists.';
+      ticket.reopenedAt = new Date();
+      ticket.updatedAt = timestamp;
+
+      if (ticket.timeline) {
+        const resStep = ticket.timeline.find(t => t.stepKey === 'resolved');
+        if (resStep) resStep.completed = false;
+      }
+
+      ticket.auditLogs.unshift({
+        id: uuidv4(),
+        timestamp: now(),
+        author: studentAuthor,
+        role: 'Student',
+        action: 'Student Disputed Resolution & Re-opened',
+        note: `Disputed resolution proof: ${ticket.reopenReason}`
+      });
+
+      await ticket.save();
+      return res.json({
+        success: true,
+        message: 'Resolution disputed. Ticket re-opened for HOD re-inspection.',
+        data: ticket
+      });
+    }
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -511,9 +767,19 @@ router.patch('/:id/status', async (req, res) => {
         const step = curTicket.timeline.find(t => t.stepKey === 'assigned');
         if (step) { step.completed = true; step.timestamp = nowObj; step.note = remarks; }
       }
-      if (['dispatched', 'in progress'].includes(normalizedStatus)) {
+      if (['dispatched', 'in progress', 'pending student verification'].includes(normalizedStatus)) {
         const step = curTicket.timeline.find(t => t.stepKey === 'in_progress');
         if (step) { step.completed = true; step.timestamp = nowObj; step.note = remarks; }
+      }
+      if (normalizedStatus === 'pending student verification') {
+        curTicket.resolutionProof = {
+          remarks,
+          proofUrl: '',
+          resolvedByHOD: updatedBy,
+          resolvedAt: `${today()}, ${now()}`,
+          verifiedByStudent: false,
+          studentVerifiedAt: ''
+        };
       }
       if (normalizedStatus === 'resolved') {
         curTicket.timeline.forEach(t => { t.completed = true; if (!t.timestamp) t.timestamp = nowObj; });

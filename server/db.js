@@ -89,42 +89,57 @@ async function connectDB() {
 // ── Database Auto-Seeder ─────────────────────────────────────────────────
 async function seedInitialData() {
   try {
-    // 1. Seed System Settings
-    const settingCount = await SystemSetting.countDocuments();
-    if (settingCount === 0) {
-      await SystemSetting.create({
-        key: 'global_settings',
-        categories: [
-          'Transport',
-          'Examinations',
-          'Library',
-          'Canteen & Food',
-          'Security & Safety',
-          'Placements & Training',
-          'Infrastructure & Maintenance',
-          'Sports & Clubs',
-          'Administration & Certificates',
-          'Health & Medical',
-          'Faculty & Teaching',
-          'Others'
-        ],
-        departments: [
-          'Information Technology (IT)',
-          'CSE (Computer Science & Engineering)',
-          'AI & ML (Artificial Intelligence & Machine Learning)',
-          'EEE (Electrical & Electronics Engineering)',
-          'BI & BT (Bio-Informatics & Bio-Technology)',
-          'Mechanical Engineering',
-          'Robotics',
-          'ECE (Electronics & Communication Engineering)',
-          'Textile Industry',
-          'CS-BS (Computer Science & Business Systems)',
-          'CS-DS (Computer Science & Data Science)'
-        ],
-        priorities: ['Low', 'Medium', 'High', 'Urgent'],
-        slaHours: { critical: 2, high: 4, medium: 8, low: 24 }
-      });
-    }
+    // 1. Seed / Synchronize System Settings with Full University Department List
+    const fullCategories = [
+      'Academic',
+      'Hostel & Facilities',
+      'IT & Network',
+      'Transport',
+      'Canteen & Food',
+      'Electrical & Maintenance',
+      'Library',
+      'Examinations',
+      'Security & Safety',
+      'Placements & Training',
+      'Infrastructure & Maintenance',
+      'Administration & Certificates',
+      'Health & Medical',
+      'Faculty & Teaching',
+      'Harassment & Discipline',
+      'Others'
+    ];
+    const fullDepartments = [
+      'CSE (Computer Science & Engineering)',
+      'Information Technology (IT)',
+      'AI & ML (Artificial Intelligence & Machine Learning)',
+      'Cyber Security',
+      'ECE (Electronics & Communication Engineering)',
+      'BI & BT (Bio-Informatics & Bio-Technology)',
+      'Robotics',
+      'Food Technology',
+      'Textile Industry',
+      'CS-BS (Computer Science & Business Systems)',
+      'CS-DS (Computer Science & Data Science)',
+      'BBA (Bachelor of Business Administration)',
+      'MBA (Master of Business Administration)',
+      'MCA (Master of Computer Applications)',
+      'Management (BBA / MBA / MCA)',
+      'Estate & Hostel Management'
+    ];
+
+    await SystemSetting.findOneAndUpdate(
+      { key: 'global_settings' },
+      {
+        $set: {
+          key: 'global_settings',
+          categories: fullCategories,
+          departments: fullDepartments,
+          priorities: ['Low', 'Medium', 'High', 'Urgent'],
+          slaHours: { critical: 2, high: 4, medium: 8, low: 24 }
+        }
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
 
     // 2. Seed Super Admin and Pre-Approved Demo Student via seed script
     const seedDatabase = require('./scripts/seed');

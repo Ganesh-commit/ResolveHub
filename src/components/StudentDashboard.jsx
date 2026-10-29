@@ -30,7 +30,7 @@ export const StudentDashboard = () => {
     // Statistics calculation
     const totalMy = myComplaints.length;
     const pendingMy = myComplaints.filter(c => ['new', 'submitted', 'under review'].includes(c.status.toLowerCase())).length;
-    const inProgressMy = myComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned'].includes(c.status.toLowerCase())).length;
+    const inProgressMy = myComplaints.filter(c => ['investigating', 'dispatched', 'in progress', 'assigned', 'pending student verification'].includes(c.status.toLowerCase())).length;
     const resolvedMy = myComplaints.filter(c => ['resolved'].includes(c.status.toLowerCase())).length;
     // Banner bug fix: check for latest resolved complaint banner vs registration approved banner
     const latestResolved = myComplaints.find(c => c.status === 'Resolved');
@@ -191,6 +191,8 @@ export const StudentDashboard = () => {
                     progressPct = 50;
                 else if (c.status === 'In Progress' || c.status === 'investigating')
                     progressPct = 75;
+                else if (c.status === 'Pending Student Verification')
+                    progressPct = 90;
                 else if (c.status === 'Resolved')
                     progressPct = 100;
                 return (<div key={c.id} className="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-stone-200 dark:border-slate-700 shadow-sm hover:border-[#8a2410] transition-all space-y-3">

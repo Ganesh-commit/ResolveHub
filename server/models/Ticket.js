@@ -57,7 +57,7 @@ const ticketSchema = new mongoose.Schema({
   aiSuggestedDept: { type: String, default: '' },
   duplicateClusterId: { type: String, default: null },
 
-  // ── SLA Auto-Escalation Fields ──
+  // ── SLA Auto-Escalation & Smart Routing Fields ──
   slaDeadline: { type: Date, default: () => new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
   escalationLevel: {
     type: String,
@@ -67,6 +67,21 @@ const ticketSchema = new mongoose.Schema({
   isEscalated: { type: Boolean, default: false },
   escalatedAt: { type: Date, default: null },
   escalationReason: { type: String, default: '' },
+  isRetainedBySuperAdmin: { type: Boolean, default: false },
+  routingScope: {
+    type: String,
+    enum: ['DEPT_HOD_ROUTED', 'SUPERADMIN_RETAINED'],
+    default: 'DEPT_HOD_ROUTED'
+  },
+  routingReason: { type: String, default: '' },
+  resolutionProof: {
+    remarks: { type: String, default: '' },
+    proofUrl: { type: String, default: '' },
+    resolvedByHOD: { type: String, default: '' },
+    resolvedAt: { type: String, default: '' },
+    verifiedByStudent: { type: Boolean, default: false },
+    studentVerifiedAt: { type: String, default: '' }
+  },
 
   // ── Status Stepper Timeline ──
   timeline: {
@@ -102,6 +117,7 @@ const ticketSchema = new mongoose.Schema({
   eta: { type: String, default: '3 Business Days (SLA Target)' },
   etaMinutesLeft: { type: Number, default: 4320 },
   currentStepIndex: { type: Number, default: 0 },
+  submittedAt: { type: String, default: () => new Date().toLocaleString('en-IN') },
   createdAt: { type: String, default: () => new Date().toLocaleString('en-IN'), index: true },
   updatedAt: { type: String, default: () => new Date().toLocaleString('en-IN') },
   attachments: [{

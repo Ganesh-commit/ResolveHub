@@ -5,7 +5,7 @@ import { authApi } from '../services/api';
 import { FileText, AlertCircle, Clock, CheckCircle2, XCircle, Users, UserCheck, UserPlus, Settings, PieChart, Activity, Search, Plus, Trash2, Eye, EyeOff, Check, X, Flame, BarChart3, Building2, Sliders, Download, ArrowRight, KeyRound, Loader2 } from 'lucide-react';
 import { AdminAnalyticsDashboard } from './AdminAnalyticsDashboard';
 export const SuperAdminDashboard = () => {
-    const { activeView, setActiveView, complaints, signupRequests, approveSignupRequest, rejectSignupRequest, deleteSignupRequest, adminsList, createDeptAdmin, toggleAdminStatus, deleteAdminAccount, studentsList, toggleStudentStatus, deleteStudentAccount, systemSettings, updateSettings, activityLogs, updateComplaintStatus, assignComplaint, addAuditRemarks, addToast } = useResolveHub();
+    const { activeView, setActiveView, complaints, signupRequests, approveSignupRequest, rejectSignupRequest, deleteSignupRequest, adminsList, createDeptAdmin, toggleAdminStatus, deleteAdminAccount, studentsList, toggleStudentStatus, deleteStudentAccount, systemSettings, updateSettings, activityLogs, updateComplaintStatus, assignComplaint, addAuditRemarks, triggerSmartRouting, addToast } = useResolveHub();
     const [activeTab, setActiveTab] = useState('dashboard');
     // Socket.io Realtime Listener for new account requests
     useEffect(() => {
@@ -350,9 +350,15 @@ export const SuperAdminDashboard = () => {
       {activeTab === 'dashboard' && (<div className="space-y-8">
           {/* Quick Administrative Action Shortcuts */}
           <div>
-            <h2 className="text-sm font-extrabold text-slate-500 uppercase tracking-wider mb-3">
-              Quick Governance Actions
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-extrabold text-slate-500 uppercase tracking-wider">
+                Quick Governance Actions & Smart Auto-Routing Engine
+              </h2>
+              <button onClick={triggerSmartRouting} className="px-4 py-2 bg-[#8B2414] hover:bg-[#721c0e] text-white text-xs font-extrabold rounded-full shadow-sm transition-all cursor-pointer flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-amber-300"/>
+                <span>Run Smart HOD Auto-Routing Engine</span>
+              </button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <button onClick={() => {
                 setIsAddAdminOpen(true);

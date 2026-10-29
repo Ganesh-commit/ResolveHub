@@ -99,6 +99,25 @@ export const ticketApi = {
         method: 'POST',
         body: JSON.stringify({ note, author, role }),
     }).then(res => res.data || res),
+    /** SuperAdmin Smart Triage Auto-Routing Engine */
+    smartRouteAll: () => apiFetch('/tickets/smart-route-all', {
+        method: 'POST',
+    }),
+    /** Route or Retain single ticket by SuperAdmin */
+    smartRouteOne: (id, payload) => apiFetch(`/tickets/${id}/smart-route`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+    }).then(res => res.data || res),
+    /** HOD marks ticket as Resolved with Proof -> Pending Student Verification */
+    resolveWithProof: (id, remarks, proofUrl, updatedBy) => apiFetch(`/tickets/${id}/resolve-with-proof`, {
+        method: 'POST',
+        body: JSON.stringify({ remarks, proofUrl, updatedBy }),
+    }).then(res => res.data || res),
+    /** Student Two-Way Verification (Approve -> Resolved, or Dispute -> Reopen) */
+    verifyResolution: (id, payload) => apiFetch(`/tickets/${id}/verify-resolution`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    }).then(res => res.data || res),
     /** Public ticket tracking */
     track: (id) => apiFetch(`/tickets/track/${id}`).then(res => res.data || res),
 };

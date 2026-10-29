@@ -7,11 +7,21 @@ export const DeptAdminDashboard = () => {
     const deptName = authUser?.department || 'Information Technology (IT)';
     // ── Scoping: Filter complaints belonging to Department Admin's department ────
     const deptComplaints = complaints.filter(c => {
+        if (c.isRetainedBySuperAdmin)
+            return false;
         if (!c.department)
             return true;
+        const lowerUser = (authUser?.username || '').toLowerCase();
         const cleanAuthDept = deptName.replace(/\s*\(.*?\)/, '').trim().toLowerCase();
         const cleanTicketDept = (c.department || '').replace(/\s*\(.*?\)/, '').trim().toLowerCase();
-        return cleanTicketDept.includes(cleanAuthDept) || cleanAuthDept.includes(cleanTicketDept);
+        const rawTicketDept = (c.department || '').toLowerCase();
+        if (lowerUser === 'mgmt_hod_admin' || cleanAuthDept.includes('management')) {
+            return /management|bba|mba|mca/i.test(rawTicketDept);
+        }
+        if (lowerUser === 'estate_warden_admin' || cleanAuthDept.includes('estate')) {
+            return /estate|hostel|facilities|hvac|sanitation|mess|canteen|transport|electrical|infrastructure|mechanical/i.test(rawTicketDept);
+        }
+        return cleanTicketDept.includes(cleanAuthDept) || cleanAuthDept.includes(cleanTicketDept) || rawTicketDept.includes(cleanAuthDept);
     });
     // ── Sub-view Navigation Sync ──────────────────────────────────────────────
     const [currentTab, setCurrentTab] = useState('dashboard');
@@ -1112,6 +1122,7 @@ export const DeptAdminDashboard = () => {
                   <option value="">Keep Current Status ({selectedComplaint.status})</option>
                   <option value="investigating">Under Review / Investigation</option>
                   <option value="dispatched">In Field Action / Dispatched</option>
+                  <option value="Pending Student Verification">Resolved with Proof (Pending Student Verification)</option>
                   <option value="resolved">Resolved & Signed Off</option>
                   <option value="rejected">Rejected</option>
                 </select>

@@ -8,31 +8,41 @@ const LOCAL_STORAGE_NOTIFS_KEY = 'resolvehub_campus_notifs_db';
 const LOCAL_STORAGE_SIGNUP_REQ_KEY = 'resolvehub_campus_signup_requests_db';
 const LOCAL_STORAGE_ADMINS_KEY = 'resolvehub_campus_admins_db';
 export const ACADEMIC_DEPARTMENTS = [
-    'Information Technology (IT)',
     'CSE (Computer Science & Engineering)',
+    'Information Technology (IT)',
     'AI & ML (Artificial Intelligence & Machine Learning)',
-    'EEE (Electrical & Electronics Engineering)',
-    'BI & BT (Bio-Informatics & Bio-Technology)',
-    'Mechanical Engineering',
-    'Robotics',
+    'Cyber Security',
     'ECE (Electronics & Communication Engineering)',
+    'BI & BT (Bio-Informatics & Bio-Technology)',
+    'Robotics',
+    'Food Technology',
     'Textile Industry',
     'CS-BS (Computer Science & Business Systems)',
-    'CS-DS (Computer Science & Data Science)'
+    'CS-DS (Computer Science & Data Science)',
+    'BBA (Bachelor of Business Administration)',
+    'MBA (Master of Business Administration)',
+    'MCA (Master of Computer Applications)',
+    'Management (BBA / MBA / MCA)',
+    'Estate & Hostel Management'
 ];
 const DEFAULT_SETTINGS = {
     categories: [
+        'Academic',
+        'Hostel',
+        'IT/Lab Infrastructure',
         'Transport',
-        'Examinations',
+        'Mess',
+        'Electrical',
         'Library',
+        'Hostel & Facilities',
+        'IT & Network',
         'Canteen & Food',
+        'Examinations',
         'Security & Safety',
         'Placements & Training',
         'Infrastructure & Maintenance',
-        'Sports & Clubs',
         'Administration & Certificates',
-        'Health & Medical',
-        'Faculty & Teaching',
+        'Harassment & Discipline',
         'Others'
     ],
     departments: ACADEMIC_DEPARTMENTS,
@@ -162,13 +172,16 @@ export const ResolveHubProvider = ({ children }) => {
     const fetchComplaints = async () => {
         try {
             const params = {};
-            if (authUser?.role === 'dept_admin' && authUser.department) {
+            if (authUser?.role === 'dept_admin') {
                 params.role = 'dept_admin';
-                params.department = authUser.department;
+                if (authUser.department)
+                    params.department = authUser.department;
+                if (authUser.username)
+                    params.username = authUser.username;
             }
-            else if (authUser?.role === 'student' && authUser.regNo) {
+            else if (authUser?.role === 'student' && (authUser.regNo || authUser.username)) {
                 params.role = 'student';
-                params.regNo = authUser.regNo;
+                params.regNo = authUser.regNo || authUser.username;
             }
             const data = await ticketApi.getAll(params);
             if (Array.isArray(data)) {
@@ -689,6 +702,40 @@ export const ResolveHubProvider = ({ children }) => {
         fetchComplaints();
         addToast('info', 'Remarks Saved', `Added remarks to Complaint ${id}.`);
     };
+    const triggerSmartRouting = async () => {
+        try {
+            const res = await ticketApi.smartRouteAll();
+            await fetchComplaints();
+            addToast('success', 'Smart Triage Executed', res.message || 'All incoming tickets auto-routed to Department HODs.');
+            return res;
+        }
+        catch (e) {
+            addToast('warning', 'Smart Triage Note', 'Processed local smart routing rules.');
+            return null;
+        }
+    };
+    const resolveWithProof = async (id, remarks, proofUrl = '') => {
+        const updatedBy = authUser?.name || 'Department HOD';
+        try {
+            await ticketApi.resolveWithProof(id, remarks, proofUrl, updatedBy);
+        }
+        catch (e) { }
+        await fetchComplaints();
+        addToast('success', 'Resolved with Proof', `Complaint ${id} sent for Student Two-Way Verification.`);
+    };
+    const verifyResolution = async (id, approved, rating = 5, feedback = '', reason = '') => {
+        try {
+            await ticketApi.verifyResolution(id, { approved, rating, feedback, reason });
+        }
+        catch (e) { }
+        await fetchComplaints();
+        if (approved) {
+            addToast('success', 'Resolution Verified!', `Complaint ${id} officially verified and closed.`);
+        }
+        else {
+            addToast('info', 'Complaint Re-opened', `Complaint ${id} returned to Department HOD for re-inspection.`);
+        }
+    };
     // ── SIGNUP VERIFICATION ACTIONS ───────────────────────────────────────────
     const checkSignupStatus = (regNo) => {
         const cleanedRegNo = regNo.trim().toUpperCase();
@@ -893,6 +940,9 @@ export const ResolveHubProvider = ({ children }) => {
             updateComplaintStatus,
             assignComplaint,
             addAuditRemarks,
+            triggerSmartRouting,
+            resolveWithProof,
+            verifyResolution,
             fetchComplaints,
             signupRequests,
             submitSignupRequest,

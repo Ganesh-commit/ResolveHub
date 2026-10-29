@@ -3,7 +3,7 @@ import { Search, Clock, CheckCircle2, User, Building2, RotateCcw, Star, Calendar
 import { useResolveHub } from '../context/ResolveHubContext';
 import { StatusTimelineStepper } from './StatusTimelineStepper';
 export const TrackStatusSection = () => {
-    const { complaints, trackQuery, setTrackQuery, authUser, updateComplaintStatus, addToast } = useResolveHub();
+    const { complaints, trackQuery, setTrackQuery, authUser, updateComplaintStatus, verifyResolution, addToast } = useResolveHub();
     const userRegNo = authUser?.regNo || (authUser?.role === 'student' ? authUser.username : undefined);
     const myComplaints = complaints.filter(c => {
         if (!userRegNo)
@@ -43,18 +43,25 @@ export const TrackStatusSection = () => {
             addToast('warning', 'Ticket Not Found', `No complaint found matching ID "${inputVal}".`);
         }
     };
-    const handleRatingSubmit = (e) => {
+    const handleRatingSubmit = async (e) => {
         e.preventDefault();
+        if (activeComplaint) {
+            await verifyResolution(activeComplaint.id, true, rating, feedback);
+        }
         setFeedbackSubmitted(true);
-        addToast('success', 'Feedback Submitted', 'Thank you for rating our resolution service!');
     };
     const handleReopenComplaint = async () => {
         if (!activeComplaint || !reopenReason.trim())
             return;
-        await updateComplaintStatus(activeComplaint.id, 'In Progress', `Reopened by student: ${reopenReason}`);
+        if (activeComplaint.status === 'Pending Student Verification') {
+            await verifyResolution(activeComplaint.id, false, 0, '', reopenReason);
+        }
+        else {
+            await updateComplaintStatus(activeComplaint.id, 'In Progress', `Reopened by student: ${reopenReason}`);
+            addToast('info', 'Complaint Re-opened', `Ticket ${activeComplaint.id} has been re-opened for department re-inspection.`);
+        }
         setReopenModalOpen(false);
         setReopenReason('');
-        addToast('info', 'Complaint Re-opened', `Ticket ${activeComplaint.id} has been re-opened for department re-inspection.`);
     };
     const formatDate = (dateStr) => {
         if (!dateStr)
@@ -186,19 +193,30 @@ export const TrackStatusSection = () => {
                 </div>)}
             </div>
 
-            {/* Rating & Feedback / Reopen Section if Resolved */}
-            {activeComplaint.status === 'Resolved' && (<div className="p-6 bg-stone-50 dark:bg-slate-900 rounded-3xl border border-stone-200 dark:border-slate-700 space-y-4">
+            {/* Rating & Feedback / Two-Way Student Verification / Reopen Section */}
+            {(activeComplaint.status === 'Resolved' || activeComplaint.status === 'Pending Student Verification') && (<div className="p-6 bg-stone-50 dark:bg-slate-900 rounded-3xl border border-stone-200 dark:border-slate-700 space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-200 dark:border-slate-700 pb-3">
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-heading-playfair">
-                      Resolution Feedback & Quality Check
+                      {activeComplaint.status === 'Pending Student Verification'
+                    ? 'Two-Way Resolution Verification Required (HOD Resolved with Proof)'
+                    : 'Resolution Feedback & Quality Check'}
                     </h4>
-                    <p className="text-xs text-slate-500">Rate the service quality or reopen the ticket if unsatisfied.</p>
+                    <p className="text-xs text-slate-500">
+                      {activeComplaint.status === 'Pending Student Verification'
+                    ? 'Your Department HOD marked this issue as resolved with proof. Approve to close or reopen if unsatisfied.'
+                    : 'Rate the service quality or reopen the ticket if unsatisfied.'}
+                    </p>
                   </div>
 
-                  <button onClick={() => setReopenModalOpen(true)} className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-[#8a2410] dark:text-amber-300 border border-rose-200 dark:border-rose-800 font-bold text-xs rounded-xl hover:bg-[#8a2410] hover:text-white transition-all cursor-pointer flex items-center gap-1.5">
-                    <RotateCcw className="w-4 h-4"/> Re-open Complaint
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {activeComplaint.status === 'Pending Student Verification' && (<button onClick={() => verifyResolution(activeComplaint.id, true, rating, feedback || 'Approved & verified by student')} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm">
+                        <CheckCircle2 className="w-4 h-4"/> Approve & Close Ticket
+                      </button>)}
+                    <button onClick={() => setReopenModalOpen(true)} className="px-4 py-2 bg-rose-50 dark:bg-rose-950 text-[#8a2410] dark:text-amber-300 border border-rose-200 dark:border-rose-800 font-bold text-xs rounded-xl hover:bg-[#8a2410] hover:text-white transition-all cursor-pointer flex items-center gap-1.5">
+                      <RotateCcw className="w-4 h-4"/> {activeComplaint.status === 'Pending Student Verification' ? 'Dispute & Re-open' : 'Re-open Complaint'}
+                    </button>
+                  </div>
                 </div>
 
                 {!feedbackSubmitted ? (<form onSubmit={handleRatingSubmit} className="space-y-3 text-xs">
