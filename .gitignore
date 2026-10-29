@@ -7,25 +7,53 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencies
+node_modules/
+server/node_modules/
 
-# Environment files
+# Production Build outputs
+dist/
+dist-ssr/
+build/
+.cache/
+coverage/
+
+# Python & System cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment and Secrets (CRITICAL: Never commit .env files)
 .env
 .env.*
+!.env.example
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
 server/.env
+server/.env.*
+!server/.env.example
+
+# SSL & Security Credentials
+*.pem
+*.key
+*.cert
+*.pfx
+
+# File uploads & temporary storage
 server/uploads/attachments/*
 !server/uploads/attachments/.gitkeep
 server/uploads/avatars/*
 !server/uploads/avatars/.gitkeep
 
-# Editor directories and files
+# IDE and OS files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj

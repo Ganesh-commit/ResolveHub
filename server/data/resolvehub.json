@@ -8928,6 +8928,46 @@
   },
   "activityLogs": [
     {
+      "_id": "activityLogs-faa3f2b1",
+      "createdAt": "2026-10-29T04:55:11.666Z",
+      "id": "log-302a27bb",
+      "timestamp": "29 Oct 2026, 10:25 am",
+      "author": "Katabattula Venkata SivaSai Ganesh",
+      "role": "Student",
+      "action": "Student Sign In",
+      "details": "Reg No: 241FA07011 signed in."
+    },
+    {
+      "_id": "activityLogs-fff25553",
+      "createdAt": "2026-10-29T04:51:50.324Z",
+      "id": "log-8d2fe309",
+      "timestamp": "29 Oct 2026, 10:21 am",
+      "author": "lkjhgfd",
+      "role": "Guest",
+      "action": "Failed Login",
+      "details": "Registration number not found"
+    },
+    {
+      "_id": "activityLogs-49e80318",
+      "createdAt": "2026-10-29T04:51:40.112Z",
+      "id": "log-332103e0",
+      "timestamp": "29 Oct 2026, 10:21 am",
+      "author": "kjhgfds",
+      "role": "Guest",
+      "action": "Failed Login",
+      "details": "Registration number not found"
+    },
+    {
+      "_id": "activityLogs-0cdfe4e1",
+      "createdAt": "2026-10-29T04:48:52.905Z",
+      "id": "log-e1f5fcf1",
+      "timestamp": "29 Oct 2026, 10:18 am",
+      "author": "ksaiganesh64",
+      "role": "Super Admin",
+      "action": "Admin Sign In",
+      "details": "Signed in successfully"
+    },
+    {
       "_id": "activityLogs-fab21046",
       "createdAt": "2026-10-29T04:18:41.923Z",
       "id": "log-974eedeb",
