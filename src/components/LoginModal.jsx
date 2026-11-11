@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { X, Lock, Shield, ArrowRight, AlertTriangle, KeyRound, UserPlus, CheckCircle2, Search, User, ShieldCheck, Building2, Eye, EyeOff } from 'lucide-react';
+import { X, Lock, Shield, ArrowRight, AlertTriangle, KeyRound, UserPlus, CheckCircle2, Search, User, ShieldCheck, Building2, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useResolveHub } from '../context/ResolveHubContext';
 import { ForcePasswordChangeModal } from './ForcePasswordChangeModal';
 export const LoginModal = () => {
-    const { isLoginModalOpen, setIsLoginModalOpen, loginUser, submitSignupRequest, checkSignupStatus } = useResolveHub();
+    const { isLoginModalOpen, setIsLoginModalOpen, loginUser, submitSignupRequest, checkSignupStatus, loginDemoStudent, loginDemoSuperAdmin } = useResolveHub();
     const [authMode, setAuthMode] = useState('student_login');
     // Password visibility states
     const [showStudentPassword, setShowStudentPassword] = useState(false);
@@ -105,6 +105,38 @@ export const LoginModal = () => {
             setErrorMessage(null);
         }
     };
+
+    // 1-Click Demo Login Handlers for Recruiters & Evaluators
+    const handleDemoStudentLogin = async () => {
+        setStudentRegNo('241FA07011');
+        setStudentPassword('241FA07011');
+        setAuthMode('student_login');
+        setErrorMessage(null);
+        setErrorCode(null);
+        setLoading(true);
+        if (loginDemoStudent) {
+            await loginDemoStudent();
+        } else {
+            await loginUser('241FA07011', '241FA07011', 'student');
+        }
+        setLoading(false);
+    };
+
+    const handleDemoSuperAdminLogin = async () => {
+        setAdminType('super_admin');
+        setAdminUsername('superadmin');
+        setAdminPassword('SuperAdmin@2026');
+        setAuthMode('admin_login');
+        setErrorMessage(null);
+        setErrorCode(null);
+        setLoading(true);
+        if (loginDemoSuperAdmin) {
+            await loginDemoSuperAdmin();
+        } else {
+            await loginUser('superadmin', 'SuperAdmin@2026', 'super_admin');
+        }
+        setLoading(false);
+    };
     // Handle Student Signup Request Submission
     const handleSignupSubmit = async (e) => {
         e.preventDefault();
@@ -188,6 +220,59 @@ export const LoginModal = () => {
             </p>
           </div>
 
+          {/* ── Recruiter & Evaluator 1-Click Demo Access Card ── */}
+          <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/90 dark:to-slate-800/90 border-2 border-amber-300 dark:border-amber-500/40 shadow-xs">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-black text-amber-950 dark:text-amber-200 uppercase tracking-wider">
+                <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
+                <span>Recruiter & Evaluator Demo Login</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+                1-Click Instant Login
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 mb-2.5">
+              Instantly launch either dashboard pre-loaded with sample complaints and accounts:
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleDemoStudentLogin}
+                disabled={loading}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-stone-50 dark:hover:bg-slate-700 border border-stone-200 dark:border-slate-700 hover:border-[#8a2410] shadow-xs text-left transition-all cursor-pointer group"
+                title="1-Click Login as Student 241FA07011"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold text-slate-900 dark:text-white group-hover:text-[#8a2410] flex items-center gap-1">
+                    👨🎓 Student Demo
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#8a2410] group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                  Reg: <strong className="text-slate-800 dark:text-slate-200">241FA07011</strong>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDemoSuperAdminLogin}
+                disabled={loading}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-stone-50 dark:hover:bg-slate-700 border border-stone-200 dark:border-slate-700 hover:border-amber-500 shadow-xs text-left transition-all cursor-pointer group"
+                title="1-Click Login as Super Admin"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold text-slate-900 dark:text-white group-hover:text-amber-600 flex items-center gap-1">
+                    ⚡ Super Admin
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                  User: <strong className="text-slate-800 dark:text-slate-200">superadmin</strong>
+                </div>
+              </button>
+            </div>
+          </div>
+
           {/* Four Navigation Tabs */}
           <div className="flex bg-stone-100 dark:bg-slate-700/60 p-1.5 rounded-2xl mb-5 text-[11px] font-bold gap-1 border border-stone-200 dark:border-slate-600">
             <button type="button" onClick={() => {
@@ -269,9 +354,23 @@ export const LoginModal = () => {
           {/* ── MODE 1: STUDENT SIGN IN FORM ── */}
           {authMode === 'student_login' && (<form onSubmit={handleStudentLogin} className="space-y-4">
               <div>
-                <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
-                  Registration Number
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                    Registration Number
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudentRegNo('241FA07011');
+                      setStudentPassword('241FA07011');
+                      setErrorMessage(null);
+                    }}
+                    className="text-[10px] font-bold text-[#8a2410] dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1 bg-amber-50 dark:bg-slate-900 px-2 py-0.5 rounded-md border border-amber-200 dark:border-slate-700"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>Auto-fill Demo (241FA07011)</span>
+                  </button>
+                </div>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"/>
                   <input type="text" required value={studentRegNo} onChange={(e) => {
@@ -346,15 +445,34 @@ export const LoginModal = () => {
 
               {/* Username Input */}
               <div>
-                <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
-                  {adminType === 'dept_admin' ? 'Department Admin Username' : 'Super Admin Username'}
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                    {adminType === 'dept_admin' ? 'Department Admin Username' : 'Super Admin Username'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (adminType === 'super_admin') {
+                        setAdminUsername('superadmin');
+                        setAdminPassword('SuperAdmin@2026');
+                      } else {
+                        setAdminUsername('cse_hod_admin');
+                        setAdminPassword('VignanCSE@2026');
+                      }
+                      setErrorMessage(null);
+                    }}
+                    className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1 bg-amber-50 dark:bg-slate-900 px-2 py-0.5 rounded-md border border-amber-200 dark:border-slate-700"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>{adminType === 'super_admin' ? 'Auto-fill Demo (superadmin)' : 'Auto-fill Demo (CSE HOD)'}</span>
+                  </button>
+                </div>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"/>
                   <input type="text" required value={adminUsername} onChange={(e) => {
                 setAdminUsername(e.target.value);
                 setErrorMessage(null);
-            }} placeholder={adminType === 'dept_admin' ? 'Enter Department Admin Username' : 'Enter Super Admin Username (e.g. ksaiganesh64)'} className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-[#8a2410] outline-none text-slate-900 dark:text-white font-mono font-bold"/>
+            }} placeholder={adminType === 'dept_admin' ? 'Enter Department Admin Username (e.g. cse_hod_admin)' : 'Enter Super Admin Username (e.g. superadmin)'} className="w-full pl-10 pr-4 py-3 text-xs bg-stone-50 dark:bg-slate-900 rounded-xl border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-[#8a2410] outline-none text-slate-900 dark:text-white font-mono font-bold"/>
                 </div>
               </div>
 

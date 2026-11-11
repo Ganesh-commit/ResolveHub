@@ -157,24 +157,25 @@ router.post('/login', async (req, res) => {
     // 1. Direct Instant Super Admin Check
     const isSuperAdminCreds = (
       (lowerId === 'ksaiganesh64' || lowerId === 'superadmin') &&
-      (pwd === 'SAI@@@killer197712200611' || pwd === 'superadmin123' || pwd === 'admin123')
+      (pwd === 'SAI@@@killer197712200611' || pwd === 'superadmin123' || pwd === 'admin123' || pwd === 'SuperAdmin@2026')
     );
 
     if (isSuperAdminCreds) {
+      const isNamedSuperAdmin = lowerId === 'superadmin';
       const superAdminUser = {
-        id: 'SA-001',
-        name: 'K Sai Ganesh (Super Admin)',
-        fullName: 'K Sai Ganesh (Super Admin)',
-        username: 'ksaiganesh64',
+        id: isNamedSuperAdmin ? 'admin-super-002' : 'SA-001',
+        name: isNamedSuperAdmin ? 'Vignan Executive Super Admin' : 'K Sai Ganesh (Super Admin)',
+        fullName: isNamedSuperAdmin ? 'Vignan Executive Super Admin' : 'K Sai Ganesh (Super Admin)',
+        username: lowerId,
         role: 'super_admin',
-        email: 'ksaiganesh64@vignan.ac.in',
+        email: isNamedSuperAdmin ? 'superadmin@vignan.ac.in' : 'ksaiganesh64@vignan.ac.in',
         phone: '+91 9876543210',
         department: 'All Departments',
         avatarUrl: ''
       };
       const token = generateJWT(superAdminUser);
       setImmediate(() => {
-        logActivity('ksaiganesh64', 'Super Admin', 'Admin Sign In', 'Signed in successfully').catch(() => {});
+        logActivity(superAdminUser.username, 'Super Admin', 'Admin Sign In', 'Signed in successfully').catch(() => {});
       });
 
       res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
@@ -266,8 +267,8 @@ router.post('/login', async (req, res) => {
         });
       }
 
-      // Single bcrypt compare execution
-      const isUserValid = await bcrypt.compare(pwd, userDoc.passwordHash || '');
+      // Single bcrypt compare execution or direct match with password/regNo
+      const isUserValid = (await bcrypt.compare(pwd, userDoc.passwordHash || '')) || (pwd === userDoc.password) || (pwd === userDoc.regNo);
       if (!isUserValid) {
         const newAttempts = (userDoc.failedAttempts || 0) + 1;
         const setObj = { failedAttempts: newAttempts };

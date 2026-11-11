@@ -19,7 +19,7 @@ const SLIDES = [
     }
 ];
 export const HeroSlideshow = ({ onOpenTrackModal }) => {
-    const { setIsLoginModalOpen } = useResolveHub();
+    const { setIsLoginModalOpen, loginDemoStudent, loginDemoSuperAdmin } = useResolveHub();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [isReducedMotion, setIsReducedMotion] = useState(false);
@@ -134,6 +134,43 @@ export const HeroSlideshow = ({ onOpenTrackModal }) => {
               </button>
             </div>
 
+            {/* Recruiter & Evaluator 1-Click Demo Login Bar */}
+            <div className="pt-3 max-w-xl mx-auto w-full">
+              <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border-2 border-[#ffc20e]/60 shadow-2xl">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#ffc20e] uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-[#ffc20e] animate-pulse" />
+                    <span>Recruiter & Evaluator Live Demo</span>
+                  </div>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 uppercase tracking-wider">
+                    1-Click Instant Login
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    onClick={loginDemoStudent}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#ffc20e] to-amber-500 hover:from-amber-400 hover:to-amber-500 text-[#4a1208] font-black text-xs uppercase tracking-wider shadow-md hover:shadow-[#ffc20e]/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5 cursor-pointer"
+                    title="Instant Login as Student 241FA07011"
+                  >
+                    <span>👨🎓 Student (241FA07011)</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#4a1208]" />
+                  </button>
+                  <button
+                    onClick={loginDemoSuperAdmin}
+                    className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-amber-300/40 hover:border-amber-300 font-black text-xs uppercase tracking-wider shadow-md transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5 cursor-pointer"
+                    title="Instant Login as Super Admin"
+                  >
+                    <span className="text-[#ffc20e]">⚡</span>
+                    <span>Super Admin Demo</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#ffc20e]" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-amber-200/80 text-center mt-1.5 font-medium">
+                  Direct dashboard access pre-seeded with 48 students, 69 grievances & live routing engine.
+                </p>
+              </div>
+            </div>
+
           </div>
 
         </div>
@@ -217,7 +254,13 @@ export const HeroSlideshow = ({ onOpenTrackModal }) => {
               <span>Have a concern? Raise it now.</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button onClick={loginDemoStudent} className="hidden sm:inline-flex px-3.5 py-1.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs uppercase tracking-wider rounded-full border border-white/25 transition-all cursor-pointer items-center gap-1 shadow-xs">
+                <span>👨🎓 Student Demo</span>
+              </button>
+              <button onClick={loginDemoSuperAdmin} className="hidden sm:inline-flex px-3.5 py-1.5 bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 font-bold text-xs uppercase tracking-wider rounded-full border border-amber-400/40 transition-all cursor-pointer items-center gap-1 shadow-xs">
+                <span>⚡ Super Admin</span>
+              </button>
               <button onClick={() => setIsLoginModalOpen(true)} className="px-5 py-1.5 bg-[#ffc20e] hover:bg-[#e0a800] text-[#4a1208] font-black text-xs uppercase tracking-wider rounded-full shadow-md transition-all cursor-pointer">
                 Submit Complaint
               </button>

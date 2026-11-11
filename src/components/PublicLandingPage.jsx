@@ -6,7 +6,7 @@ import { ScrollReveal } from './ScrollReveal';
 import { Footer } from './Footer';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 export const PublicLandingPage = () => {
-    const { setIsLoginModalOpen, authUser, setActiveView } = useResolveHub();
+    const { setIsLoginModalOpen, authUser, setActiveView, loginDemoStudent, loginDemoSuperAdmin } = useResolveHub();
     // Mobile Nav Drawer
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     // Track Status Modal State
@@ -142,8 +142,23 @@ export const PublicLandingPage = () => {
           </div>
 
           {/* Right Action & Mobile Toggle */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsLoginModalOpen(true)} className="px-6 py-2.5 bg-[#8a2410] hover:bg-[#6f1b0c] text-white font-extrabold text-xs tracking-wider rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer uppercase">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={loginDemoStudent}
+              className="hidden lg:inline-flex px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-[#8a2410] font-black text-[11px] tracking-wider rounded-full border border-amber-300 transition-all cursor-pointer uppercase items-center gap-1 shadow-xs"
+              title="1-Click Login as Student 241FA07011"
+            >
+              <span>👨🎓 Student Demo</span>
+            </button>
+            <button
+              onClick={loginDemoSuperAdmin}
+              className="hidden lg:inline-flex px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-amber-300 font-black text-[11px] tracking-wider rounded-full border border-stone-700 transition-all cursor-pointer uppercase items-center gap-1 shadow-xs"
+              title="1-Click Login as Super Admin"
+            >
+              <span>⚡ Super Admin</span>
+            </button>
+
+            <button onClick={() => setIsLoginModalOpen(true)} className="px-5 sm:px-6 py-2 sm:py-2.5 bg-[#8a2410] hover:bg-[#6f1b0c] text-white font-extrabold text-xs tracking-wider rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer uppercase">
               Login
             </button>
 
@@ -174,6 +189,25 @@ export const PublicLandingPage = () => {
             <button onClick={() => scrollToSection('features')} className="block w-full text-left py-2 hover:text-[#8a2410]">
               Features
             </button>
+            
+            {/* Recruiter Quick Demos */}
+            <div className="pt-3 border-t border-stone-200 space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">Recruiter Quick Access:</div>
+              <button
+                onClick={() => { setMobileMenuOpen(false); loginDemoStudent(); }}
+                className="w-full text-left py-2.5 px-3 rounded-xl bg-amber-50 text-[#8a2410] font-bold text-xs flex items-center justify-between"
+              >
+                <span>👨🎓 Student Demo (241FA07011)</span>
+                <span className="text-[10px] text-amber-600 uppercase font-mono">1-Click</span>
+              </button>
+              <button
+                onClick={() => { setMobileMenuOpen(false); loginDemoSuperAdmin(); }}
+                className="w-full text-left py-2.5 px-3 rounded-xl bg-stone-900 text-amber-300 font-bold text-xs flex items-center justify-between"
+              >
+                <span>⚡ Super Admin Demo</span>
+                <span className="text-[10px] text-amber-400 uppercase font-mono">1-Click</span>
+              </button>
+            </div>
           </div>)}
       </nav>
 

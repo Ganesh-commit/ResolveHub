@@ -2094,7 +2094,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -2174,8 +2174,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Sanitation & Hygiene with High priority."
+        },
+        {
+          "id": "audit-1794367665662-2ad3",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1049",
@@ -2195,7 +2206,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -2275,8 +2286,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Electrical with High priority."
+        },
+        {
+          "id": "audit-1794367665933-kr44",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1073",
@@ -2498,7 +2520,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to AI & ML HOD: Detected AI/ML GPU cluster or deep learning lab infrastructure keywords.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. S. Padmavathi (AI & ML HOD)",
         "username": "aiml_hod_admin",
@@ -2578,8 +2600,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Academics with Urgent priority."
+        },
+        {
+          "id": "audit-1794367666331-6c8b",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1011",
@@ -2599,7 +2632,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to CSE HOD: Detected CSE programming lab software, IDE, or compiler environment issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. K. Venkata Rao (CSE HOD)",
         "username": "cse_hod_admin",
@@ -2679,8 +2712,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under IT & Wi-Fi with High priority."
+        },
+        {
+          "id": "audit-1794367666436-syrg",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1026",
@@ -2801,7 +2845,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to IT & Network HOD: Detected campus Wi-Fi, optical network, router, or portal connectivity issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. N. Srinivasu (IT & Network HOD)",
         "username": "it_network_admin",
@@ -2881,8 +2925,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under IT & Wi-Fi with High priority."
+        },
+        {
+          "id": "audit-1794367666651-e6se",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1012",
@@ -3104,7 +3159,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Robotics HOD: Detected robotics, actuators, drone, or mechatronics equipment.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. P. Karthikeya (Robotics HOD)",
         "username": "robotics_hod_admin",
@@ -3184,8 +3239,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Infrastructure & Maintenance with Urgent priority."
+        },
+        {
+          "id": "audit-1794367666894-trrz",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1058",
@@ -3508,7 +3574,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to BI & BT HOD: Detected biotechnology or bioinformatics laboratory equipment.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. A. Hymavathi (BI & BT HOD)",
         "username": "bibt_hod_admin",
@@ -3588,8 +3654,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Academics with Urgent priority."
+        },
+        {
+          "id": "audit-1794367666969-9rx0",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1076",
@@ -3811,7 +3888,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -3891,8 +3968,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Mess & Dining with Medium priority."
+        },
+        {
+          "id": "audit-1794367667086-kupf",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1055",
@@ -4013,7 +4101,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -4093,8 +4181,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Hostel & Facilities with Medium priority."
+        },
+        {
+          "id": "audit-1794367667153-rezr",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1032",
@@ -4114,7 +4213,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Food Technology HOD: Detected food processing or food technology lab issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. G. Subba Rao (Food Technology HOD)",
         "username": "foodtech_hod_admin",
@@ -4194,8 +4293,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Infrastructure & Maintenance with High priority."
+        },
+        {
+          "id": "audit-1794367667236-ibib",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1020",
@@ -4316,7 +4426,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -4396,8 +4506,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Transport with Medium priority."
+        },
+        {
+          "id": "audit-1794367667289-ffpe",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1065",
@@ -4417,7 +4538,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -4497,8 +4618,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Infrastructure & Maintenance with High priority."
+        },
+        {
+          "id": "audit-1794367667319-98sl",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1022",
@@ -4518,7 +4650,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Robotics HOD: Detected robotics, actuators, drone, or mechatronics equipment.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Dr. P. Karthikeya (Robotics HOD)",
         "username": "robotics_hod_admin",
@@ -4598,8 +4730,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Academics with High priority."
+        },
+        {
+          "id": "audit-1794367667364-qd8y",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1077",
@@ -4619,7 +4762,7 @@
       "isRetainedBySuperAdmin": false,
       "routingScope": "DEPT_HOD_ROUTED",
       "routingReason": "Auto-routed to Estate & Hostel Warden: Detected hostel, mess, transport, or campus estate infrastructure issue.",
-      "escalationLevel": "LEVEL_1_HOD",
+      "escalationLevel": "LEVEL_2_DEAN",
       "assignedAgent": {
         "name": "Col. B. Suryanarayana (Estate & Chief Hostel Warden)",
         "username": "estate_warden_admin",
@@ -4699,8 +4842,19 @@
           "role": "Student",
           "action": "Complaint Logged",
           "note": "Submitted under Finance & Scholarship with Medium priority."
+        },
+        {
+          "id": "audit-1794367667720-17mf",
+          "timestamp": "11/11/2026, 8:57:45 am",
+          "author": "ResolveHub SLA Engine",
+          "role": "System Worker",
+          "action": "SLA_AUTO_ESCALATE_DEAN",
+          "note": "Escalated to Dean due to 6-day critical SLA threshold breach."
         }
-      ]
+      ],
+      "isEscalated": true,
+      "escalatedAt": "2026-11-11T03:27:45.661Z",
+      "escalationReason": "Critical SLA Escalation: Grievance unresolved > 6 days. Escalated to Dean of Student Affairs."
     },
     {
       "_id": "tkt-rp-1040",
@@ -8927,6 +9081,26 @@
     }
   },
   "activityLogs": [
+    {
+      "_id": "activityLogs-fa6a78c1",
+      "createdAt": "2026-11-11T03:31:20.765Z",
+      "id": "log-de4e01ff",
+      "timestamp": "11 Nov 2026, 09:01 am",
+      "author": "superadmin",
+      "role": "Super Admin",
+      "action": "Admin Sign In",
+      "details": "Signed in successfully"
+    },
+    {
+      "_id": "activityLogs-95fcfa0c",
+      "createdAt": "2026-11-11T03:31:20.648Z",
+      "id": "log-a4b6f4fe",
+      "timestamp": "11 Nov 2026, 09:01 am",
+      "author": "Katabattula Venkata SivaSai Ganesh",
+      "role": "Student",
+      "action": "Student Sign In",
+      "details": "Reg No: 241FA07011 signed in."
+    },
     {
       "_id": "activityLogs-faa3f2b1",
       "createdAt": "2026-10-29T04:55:11.666Z",

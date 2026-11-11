@@ -511,6 +511,9 @@ Open your browser and navigate to **`http://localhost:5173`** (or `http://localh
 
 ### 🔑 Demo Credentials Reference Table
 
+> [!TIP]
+> **⚡ 1-Click Recruiter Demo Access:** When launching ResolveHub, recruiters and evaluators can click the **"👨🎓 Student Demo (241FA07011)"** or **"⚡ Super Admin Demo"** buttons directly on the landing page hero banner, in the sticky footer bar, or at the top of the Login Modal to instantly launch either dashboard with 1 click without manual typing!
+
 | Role | Username / Reg No | Password | Access Scope |
 | :--- | :--- | :--- | :--- |
 | **Primary Student** | `241FA07011` | `241FA07011` | Student Dashboard, Raise Grievance, My Complaints (7 seeded tickets) |

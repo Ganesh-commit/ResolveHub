@@ -338,7 +338,7 @@ export const ResolveHubProvider = ({ children }) => {
     // ── AUTHENTICATION METHODS (STRICT BACKEND WITH SUPER ADMIN FAILSAFE) ────────────
     const loginUser = async (identifier, password, role, department) => {
         const cleanId = (identifier || '').trim().toLowerCase();
-        const isSuperAdminMatch = (cleanId === 'ksaiganesh64' || cleanId === 'superadmin') && (password === 'SAI@@@killer197712200611' || password === 'superadmin123' || password === 'admin123');
+        const isSuperAdminMatch = (cleanId === 'ksaiganesh64' || cleanId === 'superadmin') && (password === 'SAI@@@killer197712200611' || password === 'superadmin123' || password === 'admin123' || password === 'SuperAdmin@2026');
         try {
             const resData = await authApi.login(identifier, password, role);
             if (resData && resData.success) {
@@ -381,11 +381,12 @@ export const ResolveHubProvider = ({ children }) => {
                 }
             }
             if (isSuperAdminMatch) {
+                const isNamedSuperAdmin = cleanId === 'superadmin';
                 const authData = {
-                    id: 'SA-001',
-                    name: 'K Sai Ganesh (Super Admin)',
-                    username: 'ksaiganesh64',
-                    email: 'ksaiganesh64@vignan.ac.in',
+                    id: isNamedSuperAdmin ? 'admin-super-002' : 'SA-001',
+                    name: isNamedSuperAdmin ? 'Vignan Executive Super Admin' : 'K Sai Ganesh (Super Admin)',
+                    username: cleanId,
+                    email: isNamedSuperAdmin ? 'superadmin@vignan.ac.in' : 'ksaiganesh64@vignan.ac.in',
                     phone: '+91 9876543210',
                     role: 'super_admin',
                     department: 'All Departments',
@@ -395,18 +396,19 @@ export const ResolveHubProvider = ({ children }) => {
                 setAuthUser(authData);
                 setIsLoginModalOpen(false);
                 setActiveView('super_admin_dashboard');
-                addToast('success', 'Super Admin Login', 'Welcome System Super Admin K Sai Ganesh');
+                addToast('success', 'Super Admin Login', `Welcome System Super Admin ${authData.name}`);
                 return { success: true };
             }
             return { success: false, code: resData?.code, message: resData?.error || resData?.message || 'Invalid credentials' };
         }
         catch (err) {
             if (isSuperAdminMatch) {
+                const isNamedSuperAdmin = cleanId === 'superadmin';
                 const authData = {
-                    id: 'SA-001',
-                    name: 'K Sai Ganesh (Super Admin)',
-                    username: 'ksaiganesh64',
-                    email: 'ksaiganesh64@vignan.ac.in',
+                    id: isNamedSuperAdmin ? 'admin-super-002' : 'SA-001',
+                    name: isNamedSuperAdmin ? 'Vignan Executive Super Admin' : 'K Sai Ganesh (Super Admin)',
+                    username: cleanId,
+                    email: isNamedSuperAdmin ? 'superadmin@vignan.ac.in' : 'ksaiganesh64@vignan.ac.in',
                     phone: '+91 9876543210',
                     role: 'super_admin',
                     department: 'All Departments',
@@ -416,7 +418,7 @@ export const ResolveHubProvider = ({ children }) => {
                 setAuthUser(authData);
                 setIsLoginModalOpen(false);
                 setActiveView('super_admin_dashboard');
-                addToast('success', 'Super Admin Login', 'Welcome System Super Admin K Sai Ganesh');
+                addToast('success', 'Super Admin Login', `Welcome System Super Admin ${authData.name}`);
                 return { success: true };
             }
             const upperId = (identifier || '').trim().toUpperCase();
@@ -495,6 +497,13 @@ export const ResolveHubProvider = ({ children }) => {
     // Legacy student login wrapper
     const loginWithRegNo = async (regNo, password) => {
         return loginUser(regNo, password, 'student');
+    };
+    // 1-Click Quick Demo Login Shortcuts for Recruiters & Evaluators
+    const loginDemoStudent = async () => {
+        return await loginUser('241FA07011', '241FA07011', 'student');
+    };
+    const loginDemoSuperAdmin = async () => {
+        return await loginUser('superadmin', 'SuperAdmin@2026', 'super_admin');
     };
     const logout = () => {
         logoutUser();
@@ -941,6 +950,8 @@ export const ResolveHubProvider = ({ children }) => {
             updateAuthUserProfile,
             currentUserRegNo,
             loginWithRegNo,
+            loginDemoStudent,
+            loginDemoSuperAdmin,
             logout,
             complaints,
             selectedComplaint,

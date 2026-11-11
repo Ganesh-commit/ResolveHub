@@ -4,7 +4,7 @@ import { useResolveHub } from '../context/ResolveHubContext';
 import { useTheme } from '../context/ThemeContext';
 import { UserAvatar } from './UserAvatar';
 export const Navbar = () => {
-    const { authUser, activeView, setActiveView, logoutUser, notifications, unreadCount, markAllNotificationsAsRead, markNotificationAsRead, setIsLoginModalOpen, signupRequests } = useResolveHub();
+    const { authUser, activeView, setActiveView, logoutUser, notifications, unreadCount, markAllNotificationsAsRead, markNotificationAsRead, setIsLoginModalOpen, signupRequests, loginDemoStudent, loginDemoSuperAdmin } = useResolveHub();
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
     const pendingRequestsCount = signupRequests?.filter(r => r.status === 'PENDING').length || 0;
@@ -333,7 +333,22 @@ export const Navbar = () => {
                   <span>Notifications ({unreadCount})</span>
                 </button>
 
-                <div className="pt-2 mt-2 border-t border-stone-100 dark:border-slate-700">
+                <div className="pt-2 mt-2 border-t border-stone-100 dark:border-slate-700 space-y-1">
+                  {authUser.role === 'student' ? (
+                    <button
+                      onClick={() => { setUserDropdownOpen(false); loginDemoSuperAdmin(); }}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-slate-700/60 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>⚡ Switch to Super Admin</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setUserDropdownOpen(false); loginDemoStudent(); }}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-[#8a2410] dark:text-amber-300 hover:bg-rose-50 dark:hover:bg-slate-700/60 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>👨🎓 Switch to Student (241FA07011)</span>
+                    </button>
+                  )}
                   <button onClick={logoutUser} className="w-full px-4 py-2 text-left text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 flex items-center gap-2.5 cursor-pointer">
                     <LogOut className="w-4 h-4"/>
                     <span>Logout</span>
