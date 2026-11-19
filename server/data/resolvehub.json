@@ -9082,6 +9082,16 @@
   },
   "activityLogs": [
     {
+      "_id": "activityLogs-429f1ecb",
+      "createdAt": "2026-11-19T23:14:32.369Z",
+      "id": "log-74d5ce8b",
+      "timestamp": "20 Nov 2026, 04:44 am",
+      "author": "Katabattula Venkata SivaSai Ganesh",
+      "role": "Student",
+      "action": "Student Sign In",
+      "details": "Reg No: 241FA07011 signed in."
+    },
+    {
       "_id": "activityLogs-fa6a78c1",
       "createdAt": "2026-11-11T03:31:20.765Z",
       "id": "log-de4e01ff",

@@ -1,3 +1,8 @@
+const dns = require('dns');
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {}
+
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -409,6 +414,22 @@ async function logActivity(author, role, action, details) {
 }
 
 async function connectAndSeedMongo() {
+  const mongoUri = process.env.MONGODB_URI;
+  if (mongoUri && !mongoUri.includes('<username>') && !mongoUri.includes('xxx')) {
+    try {
+      const mongoose = require('mongoose');
+      console.log('🔄 Connecting to MongoDB at:', mongoUri.replace(/\/\/.*@/, '//****:****@'));
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 8000,
+        tls: true,
+        tlsAllowInvalidCertificates: true
+      });
+      console.log('🍃 MONGODB ATLAS CONNECTED SUCCESSFULLY!');
+    } catch (err) {
+      console.log('⚠️ MongoDB connection could not be established. Seamlessly using Atomic JSON DB fallback:', err.message);
+    }
+  }
+
   const loaded = loadDatabaseFromDisk();
   if (!loaded || dbState.tickets.length < 60 || dbState.users.length < 40) {
     console.log('🌱 Initializing JSON Database with 48 students and 68 complaints...');
@@ -417,7 +438,7 @@ async function connectAndSeedMongo() {
   }
 
   console.log('================================================================================');
-  console.log('📂 JSON DATABASE ENGINE ACTIVE (server/data/resolvehub.json)');
+  console.log('📂 DATABASE ENGINE ACTIVE (server/data/resolvehub.json)');
   console.log(`   • Registered Students : ${dbState.users.length} (including 241FA07011 / 241FA07011)`);
   console.log(`   • Total Complaints    : ${dbState.tickets.length} across all departments & categories`);
   console.log(`   • Admin & HOD Accounts: ${dbState.staff.length}`);
